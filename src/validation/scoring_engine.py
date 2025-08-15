@@ -82,6 +82,11 @@ class ProductScoringEngine:
             'INVERTER': ['INV', 'אינוורטר'],
             'אינוורטר': ['INV', 'INVERTER']
         }
+        
+        # Optional technical specifications (less critical for scoring)
+        self.optional_specs = {
+            '1PH', '3PH', '1PHASE', '3PHASE', 'SINGLE', 'THREE'
+        }
     
     def clean_hebrew_text(self, text: str) -> str:
         """
@@ -288,6 +293,24 @@ class ProductScoringEngine:
                 elif any(self.check_technology_equivalence(word, scraped_word) 
                         for scraped_word in scraped_text_upper.split()):
                     series_matches += 1
+                # Check for hyphenated compound words (WD-INV-PRO-SQ vs WD INV PRO SQ)
+                elif '-' in word:
+                    # Split hyphenated word and check if all parts are present
+                    word_parts = word.split('-')
+                    if all(part in scraped_text_upper for part in word_parts):
+                        series_matches += 1
+                    else:
+                        # Give partial credit based on how many parts match
+                        matching_parts = sum(1 for part in word_parts if part in scraped_text_upper)
+                        series_matches += matching_parts / len(word_parts)
+                        if matching_parts < len(word_parts):
+                            missing_parts = [part for part in word_parts if part not in scraped_text_upper]
+                            missing_series.append(f"{'-'.join(missing_parts)} (from {word})")
+                # Check if it's an optional spec (less critical)
+                elif word in self.optional_specs:
+                    # Give partial credit for missing optional specs
+                    series_matches += 0.7  # 70% credit instead of 0%
+                    missing_series.append(f"{word} (optional)")
                 else:
                     missing_series.append(word)
             

@@ -31,6 +31,7 @@ if sys.platform == "win32":
 # Add src to path for imports
 sys.path.append(os.path.join(os.getcwd(), 'src'))
 from excel.source_reader import SourceExcelReader
+from validation.scoring_engine import ProductScoringEngine
 
 # Global headless mode flag
 HEADLESS_MODE = False
@@ -182,23 +183,51 @@ def extract_individual_vendor_product_name(driver, vendor_url, vendor_name):
         driver.switch_to.window(driver.window_handles[-1])
         
         print(f"   🔍 Visiting {vendor_name} page for product name...")
-        driver.get(vendor_url)
-        time.sleep(2)
         
-        # Extract product name using same selectors as ZapScraper
+        # Set page load timeout to prevent hanging
+        driver.set_page_load_timeout(10)
+        try:
+            driver.get(vendor_url)
+        except:
+            # If page load times out, try to work with what we have
+            pass
+        
+        time.sleep(1)  # Reduced from 2 seconds
+        
+        # Extract product name using COMPREHENSIVE selectors
         selectors = [
-            "h1", "h2.product-title",
-            "[class*='product-name']", "[class*='product-title']",
-            "[itemprop='name']", ".title", ".product_title"
+            "h1", "h2", "h3",  # Any heading
+            ".product-title", ".product-name", ".product_title", ".product_name",
+            "[class*='product-title']", "[class*='product-name']", 
+            "[class*='title']", "[class*='name']",
+            "[itemprop='name']", "[data-product-name]",
+            ".title", ".name", ".item-title", ".item-name",
+            "title", "meta[property='og:title']"  # Page title and meta
         ]
         
+        # Try selectors first
         for selector in selectors:
-            elements = driver.find_elements(By.CSS_SELECTOR, selector)
-            for elem in elements:
-                text = elem.text.strip()
-                if text and 5 < len(text) < 200:
-                    print(f"   ✅ Extracted from {vendor_name}: {text}")
-                    return text
+            try:
+                elements = driver.find_elements(By.CSS_SELECTOR, selector)
+                for elem in elements:
+                    text = elem.text.strip() if hasattr(elem, 'text') else elem.get_attribute('content')
+                    if text and 10 < len(text) < 300:  # Slightly relaxed length requirements
+                        # Filter out obvious non-product text
+                        text_lower = text.lower()
+                        if not any(skip in text_lower for skip in ['cookie', 'policy', 'menu', 'nav', 'footer', 'header']):
+                            print(f"   ✅ Extracted from {vendor_name}: {text}")
+                            return text
+            except:
+                continue
+        
+        # Fallback: Try page title
+        try:
+            title = driver.title.strip()
+            if title and 10 < len(title) < 300:
+                print(f"   📄 Extracted from page title: {title}")
+                return title
+        except:
+            pass
         
         print(f"   ⚠️ Could not extract product name from {vendor_name}")
         return f"Unknown Product ({vendor_name})"
@@ -267,6 +296,12 @@ def extract_vendors_unified(driver, zap_product_name="Unknown Product"):
                 
                 # UNIFIED: Extract individual vendor product name (visit vendor page)
                 individual_vendor_product_name = extract_individual_vendor_product_name(driver, vendor_url, vendor_name)
+                
+                # Fallback: If vendor extraction failed, use ZAP product name with vendor indication
+                if "Unknown Product" in individual_vendor_product_name:
+                    zap_product_name = extract_zap_product_name(driver)
+                    if zap_product_name and zap_product_name != "Unknown Product":
+                        individual_vendor_product_name = f"{zap_product_name} (via {vendor_name})"
                 
                 # UNIFIED: Extract price using PROVEN working selector
                 vendor_price = 0
@@ -411,6 +446,34 @@ def create_excel_file(results, filename=None):
     
     # Sheet 2: Summary (סיכום) - CORRECT Hebrew headers
     summary_sheet = wb.create_sheet("סיכום")
+    
+    # Sheet 3: Exceptions (חריגים) - NEW for rejected vendors
+    exceptions_sheet = wb.create_sheet("חריגים")
+    
+    # Exceptions sheet headers
+    exceptions_headers = [
+        "מספר שורה מקור",      # A - Source Row Number
+        "שם מוצר מקורי",       # B - Original Product Name
+        "מחיר רשמי",           # C - Official Price
+        "שם ספק",              # D - Vendor Name
+        "שם מוצר באתר ספק",    # E - Product Name on Vendor Site
+        "מחיר ספק",            # F - Vendor Price
+        "הפרש מחיר",           # G - Price Difference
+        "אחוז הפרש",           # H - Percentage Difference
+        "קישור לספק",          # I - Vendor Link
+        "חותמת זמן",           # J - Timestamp
+        "ציון אימות",          # K - Validation Score
+        "סטטוס",               # L - Status
+        "סיבות דחייה"          # M - Rejection Reasons
+    ]
+    
+    # Style exceptions headers
+    for col, header in enumerate(exceptions_headers, 1):
+        cell = exceptions_sheet.cell(row=1, column=col, value=header)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = PatternFill(start_color="C65911", end_color="C65911", fill_type="solid")
+        cell.alignment = Alignment(horizontal="center")
+    
     summary_headers = [
         "שורת מקור",           # A - Source Row
         "שם המוצר",            # B - Product Name
@@ -452,8 +515,60 @@ def create_excel_file(results, filename=None):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         
         if vendors:
-            # Details sheet - one row per vendor with PROPER FORMATTING
-            for i, vendor in enumerate(vendors, 2):  # Start from row 2
+            # Process vendors and identify exceptions using REAL scoring engine
+            accepted_vendors = []
+            rejected_vendors = []
+            
+            # Initialize scoring engine
+            scoring_engine = ProductScoringEngine()
+            
+            for vendor in vendors:
+                vendor_product_name = vendor.get('vendor_product_name', '')
+                
+                # Use the REAL scoring engine to evaluate vendor product match
+                if vendor_product_name and vendor_product_name != 'Unknown Product':
+                    # Calculate score using the scoring engine
+                    scoring_result = scoring_engine.calculate_match_score(
+                        product_name,  # Original product name
+                        vendor_product_name  # Vendor's product name
+                    )
+                    
+                    validation_score = scoring_result.total_score
+                    vendor['validation_score'] = validation_score
+                    
+                    # Collect rejection reasons from scoring issues
+                    rejection_reasons = []
+                    
+                    # Check gates
+                    if not scoring_result.gates_passed.get('model_number'):
+                        rejection_reasons.append("Model number gate failed")
+                    if not scoring_result.gates_passed.get('product_type'):
+                        rejection_reasons.append("Product type gate failed")
+                    
+                    # Add other issues from scoring
+                    rejection_reasons.extend(scoring_result.issues)
+                    
+                    # Add extreme price difference check
+                    if vendor['vendor_price'] > 0 and original_price > 0:
+                        price_diff_pct = abs((vendor['vendor_price'] - original_price) / original_price * 100)
+                        if price_diff_pct > 50:
+                            rejection_reasons.append(f"Extreme price difference: {price_diff_pct:.1f}%")
+                    
+                    vendor['rejection_reasons'] = "; ".join(rejection_reasons) if rejection_reasons else ""
+                    
+                    # Apply threshold (8.0/10.0 as per CLAUDE.md)
+                    if validation_score < 8.0:
+                        rejected_vendors.append(vendor)
+                    else:
+                        accepted_vendors.append(vendor)
+                else:
+                    # No vendor product name available
+                    vendor['validation_score'] = 0.0
+                    vendor['rejection_reasons'] = "No product name from vendor site"
+                    rejected_vendors.append(vendor)
+            
+            # Details sheet - one row per ACCEPTED vendor with PROPER FORMATTING
+            for i, vendor in enumerate(accepted_vendors, 2):  # Start from row 2
                 if vendor['vendor_price'] > 0:
                     price_diff = vendor['vendor_price'] - original_price
                     price_diff_pct = (price_diff / original_price * 100) if original_price > 0 else 0
@@ -479,8 +594,30 @@ def create_excel_file(results, filename=None):
                         "Breakthrough - Dropdown"   # Method Used
                     ])
             
+            # Exceptions sheet - one row per REJECTED vendor
+            for vendor in rejected_vendors:
+                if vendor['vendor_price'] > 0:
+                    price_diff = vendor['vendor_price'] - original_price
+                    price_diff_pct = (price_diff / original_price * 100) if original_price > 0 else 0
+                    
+                    exceptions_sheet.append([
+                        str(line_num),                                        # מספר שורה מקור
+                        product_name,                                         # שם מוצר מקורי
+                        f"₪{original_price:,.1f}",                          # מחיר רשמי
+                        vendor['vendor_name'],                               # שם ספק
+                        vendor.get('vendor_product_name', 'Unknown'),        # שם מוצר באתר ספק
+                        f"₪{vendor['vendor_price']:,}",                     # מחיר ספק
+                        f"₪{price_diff:,.1f}",                              # הפרש מחיר
+                        f"{price_diff_pct:.1f}%",                           # אחוז הפרש
+                        vendor.get('vendor_url', ''),                        # קישור לספק
+                        timestamp,                                            # חותמת זמן
+                        f"{vendor.get('validation_score', 0.0):.1f}/10.0",  # ציון אימות
+                        "⚠️ דורש בדיקה",                                    # סטטוס
+                        vendor.get('rejection_reasons', '')                  # סיבות דחייה
+                    ])
+            
             # Summary sheet - one row per product with PROPER FORMATTING
-            valid_prices = [v['vendor_price'] for v in vendors if v['vendor_price'] > 0]
+            valid_prices = [v['vendor_price'] for v in accepted_vendors if v['vendor_price'] > 0]
             if valid_prices:
                 min_price = min(valid_prices)
                 max_price = max(valid_prices)
@@ -494,7 +631,7 @@ def create_excel_file(results, filename=None):
                 product_name,                   # שם המוצר
                 model_id,                       # Model ID
                 f"₪{original_price:,.1f}",     # מחיר מקורי
-                str(len(vendors)),              # סה"כ ספקים
+                str(len(accepted_vendors)),    # סה"כ ספקים (accepted only)
                 f"₪{min_price:,}",             # מחיר מינימלי
                 f"₪{max_price:,}",             # מחיר מקסימלי
                 f"₪{avg_price:,.0f}",          # מחיר ממוצע
@@ -510,7 +647,7 @@ def create_excel_file(results, filename=None):
             ])
     
     # Auto-adjust column widths
-    for sheet in [details_sheet, summary_sheet]:
+    for sheet in [details_sheet, summary_sheet, exceptions_sheet]:
         for column in sheet.columns:
             max_length = 0
             column_letter = get_column_letter(column[0].column)

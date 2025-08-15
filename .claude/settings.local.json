@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python:*)",
+      "Bash(timeout:*)",
+      "Bash(del \"data\\~$SOURCE.xlsx\")",
+      "Bash(del \"output\\~$Lines_127_Report_20250815_161500.xlsx\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

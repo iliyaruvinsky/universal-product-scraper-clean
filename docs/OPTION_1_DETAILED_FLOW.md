@@ -1321,11 +1321,10 @@ Vendor Analysis:
 └─ Best savings: -₪2,850 (-46.7%)
 ```
 
-**10.2 Generate Excel File - Details Tab**
+**10.2 Generate Excel File - Three Worksheets**
 
-```text
-Sheet Name: "פירוט" (Details)
-Purpose: One row per vendor offer
+**Sheet 1: "פירוט" (Details)**
+Purpose: One row per ACCEPTED vendor offer (score ≥8.0/10.0)
 
 Column Structure (17 columns):
 ├─ A: Source Row Number (47)
@@ -1349,11 +1348,30 @@ Column Structure (17 columns):
 Result: 18 detail rows with comprehensive vendor data
 ```
 
-**10.3 Generate Excel File - Summary Tab**
+**Sheet 2: "סיכום" (Summary)**  
+Purpose: Single row with aggregated statistics
+
+**Sheet 3: "חריגים" (Exceptions) - NEW**
+Purpose: Rejected vendors with detailed analysis
+
+Column Structure (13 columns):
+├─ A: Source Row Number
+├─ B: Original Product Name  
+├─ C: Official Price
+├─ D: Vendor Name
+├─ E: Vendor Product Name
+├─ F: Vendor Price
+├─ G: Price Difference
+├─ H: Percentage Difference
+├─ I: Vendor Link
+├─ J: Timestamp
+├─ K: Validation Score (X.X/10.0)
+├─ L: Status ("⚠️ דורש בדיקה")
+└─ M: Rejection Reasons (Gate failures, model mismatches)
+
+**10.3 Summary Tab Details**
 
 ```text
-Sheet Name: "סיכום" (Summary)  
-Purpose: Single row with aggregated statistics
 
 17-Column Summary Row:
 ├─ A: Product Name ("ELECTRA ELCO SLIM A SQ INV 40/1P")

@@ -67,10 +67,10 @@ python src/main.py --source data/products.xlsx --target output/results.xlsx --mo
 
 ## Output
 
-The scraper creates an Excel file with 2 worksheets:
+The scraper creates an Excel file with 3 worksheets:
 
 ### Worksheet 1: "פירוט" (Details)
-- All vendor offers for each product
+- All validated vendor offers for each product (score ≥8.0/10.0)
 - Price comparisons
 - Direct links to vendor pages
 
@@ -78,6 +78,11 @@ The scraper creates an Excel file with 2 worksheets:
 - Statistical summary per product
 - Average, min, max prices
 - Cheapest vendor information
+
+### Worksheet 3: "חריגים" (Exceptions)
+- Products that failed validation (score <8.0/10.0)
+- Detailed rejection reasons and scoring
+- Quality control and review items
 
 ## Testing
 

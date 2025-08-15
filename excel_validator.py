@@ -22,6 +22,10 @@ from pathlib import Path
 from typing import Dict, List, Tuple, Optional
 from datetime import datetime
 import openpyxl
+
+# Add src to path for imports
+sys.path.append(os.path.join(os.getcwd(), 'src'))
+from validation.scoring_engine import ProductScoringEngine
 from dataclasses import dataclass
 
 # Fix for Windows Unicode issues
@@ -57,6 +61,7 @@ class ExcelValidator:
             threshold: Minimum score for valid match (default 8.0/10.0 = 80%)
         """
         self.threshold = threshold
+        self.scoring_engine = ProductScoringEngine()
         self.validation_results = []
         self.summary_stats = {
             'total': 0,
@@ -324,10 +329,11 @@ class ExcelValidator:
                     # Clean scraped name (remove Hebrew)
                     scraped_clean = self.remove_hebrew_characters(scraped_name)
                     
-                    # Calculate validation score
-                    score, gates_passed, issues = self.calculate_validation_score(
-                        original_name, scraped_clean
-                    )
+                    # Calculate validation score using ProductScoringEngine
+                    scoring_result = self.scoring_engine.calculate_match_score(original_name, scraped_clean)
+                    score = scoring_result.total_score
+                    gates_passed = scoring_result.gates_passed  
+                    issues = scoring_result.issues
                     
                     # Determine status
                     status = "VALID" if score >= self.threshold else "REVIEW"

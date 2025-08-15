@@ -40,7 +40,7 @@ Perfect for users who prefer guided, conversational interaction over command-lin
 
 - **Multi-vendor Price Aggregation**: Scrapes all vendor offers for each product using 3-artifact validation
 - **Hebrew Language Support**: Full Unicode support with RTL text handling
-- **Excel Integration**: Reads from source Excel files and outputs to target Excel with dual worksheets (פירוט/סיכום)
+- **Excel Integration**: Reads from source Excel files and outputs to target Excel with three worksheets (פירוט/סיכום/חריגים)
 - **Automatic Model ID Discovery**: Intelligent algorithm that finds correct Model IDs for any product
 - **Anti-bot Protection**: Configurable delays and user agent rotation
 - **Mock Mode**: Development mode with simulated data

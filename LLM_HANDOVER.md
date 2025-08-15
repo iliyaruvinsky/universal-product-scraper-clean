@@ -194,7 +194,7 @@ Every product MUST pass:
 
 ### **3. EXCEL PROCESSING RULES**
 - **SOURCE files**: Read-only, start at row 2 (row 1 is headers)
-- **TARGET files**: Include Hebrew headers, dual worksheets (פירוט + סיכום)
+- **TARGET files**: Include Hebrew headers, three worksheets (פירוט + סיכום + חריגים)
 - **Validation**: MANDATORY excel_validator.py post-processing
 
 ### **4. VENDOR PROCESSING**
