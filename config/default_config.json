@@ -1,0 +1,40 @@
+{
+  "scraper": {
+    "headless": false,
+    "timeout": 30,
+    "min_delay": 2,
+    "max_delay": 5,
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    "window_size": "1920,1080",
+    "retry_attempts": 2,
+    "retry_delay": 3,
+    "vendor_timeout": 30
+  },
+  "excel": {
+    "start_row": 4,
+    "encoding": "utf-8",
+    "date_format": "%Y-%m-%d %H:%M:%S"
+  },
+  "hebrew": {
+    "normalize_unicode": true,
+    "remove_zero_width": true,
+    "match_threshold": 0.8
+  },
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    "file": "logs/scraper.log",
+    "max_bytes": 10485760,
+    "backup_count": 5
+  },
+  "paths": {
+    "output_dir": "output",
+    "logs_dir": "logs",
+    "temp_dir": "temp"
+  },
+  "performance": {
+    "batch_size": 20,
+    "max_workers": 1,
+    "memory_limit_mb": 2048
+  }
+}

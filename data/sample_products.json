@@ -1,0 +1,53 @@
+{
+  "products": [
+    {
+      "row": 4,
+      "name": "Electra AI INV 150",
+      "price": 2080,
+      "category": "air_conditioner",
+      "components": {
+        "importer": "Electra",
+        "series": "AI INV",
+        "model": "150"
+      }
+    },
+    {
+      "row": 5,
+      "name": "Titanium INV 140",
+      "price": 2340,
+      "category": "air_conditioner",
+      "components": {
+        "importer": "Titanium",
+        "series": "INV",
+        "model": "140"
+      }
+    },
+    {
+      "row": 6,
+      "name": "ELCO Slim A SQ INV 40/1P",
+      "price": 3100,
+      "category": "air_conditioner",
+      "components": {
+        "importer": "ELCO",
+        "series": "Slim A SQ INV",
+        "model": "40/1P"
+      }
+    },
+    {
+      "row": 7,
+      "name": "מזגן עילי תדיראן 2.5 כ״ס",
+      "price": 3200,
+      "category": "air_conditioner",
+      "components": {
+        "importer": "תדיראן",
+        "series": "עילי",
+        "model": "2.5 כ״ס"
+      }
+    }
+  ],
+  "metadata": {
+    "source": "Tadiran product catalog",
+    "last_updated": "2024-01-01",
+    "currency": "ILS"
+  }
+}
