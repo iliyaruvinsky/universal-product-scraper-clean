@@ -92,7 +92,27 @@ priority: HIGHEST
 
 ---
 
-### **4. MANDATORY: Use Production Entry Points Only**
+### **4. MANDATORY: Sequential Execution Blocking**
+
+**Priority**: HIGHEST | **Always Apply**: true
+
+**STRICT BLOCKING DEPENDENCIES:**
+1. **NO VALIDATION** without successful scraper completion for exact requested lines
+2. **NO PRESENTATION** without successful validation of actual output file  
+3. **NO SUBSTITUTION** of different Excel files or data sources
+4. **NO ASSUMPTIONS** about file locations or alternative approaches
+
+**ERROR HANDLING PROTOCOL:**
+- **Scraper timeouts**: Ask user before giving up (minimum 10 minutes patience)
+- **Failed prerequisites**: STOP and ask "What would you like me to do next?"
+- **Missing files**: Report failure, do NOT improvise with different data
+- **Todo accuracy**: Mark items as "failed" not "completed" when they fail
+
+**THIS BLOCKING PROTOCOL OVERRIDES ALL CONVENIENCE SHORTCUTS** ⚠️
+
+---
+
+### **5. MANDATORY: Use Production Entry Points Only**
 
 **Priority**: HIGHEST | **Always Apply**: true
 
@@ -123,7 +143,7 @@ python excel_validator.py output/Lines_126_Report_*.xlsx
 
 ---
 
-### **5. MANDATORY: Efficient Session Startup**
+### **6. MANDATORY: Efficient Session Startup**
 
 **Priority**: HIGHEST | **Always Apply**: true
 
@@ -202,6 +222,9 @@ python excel_validator.py output/Lines_126_Report_*.xlsx
 - ❌ Skip excel_validator.py validation
 - ❌ Use old scoring weights (15%/65%/20%)
 - ❌ Progress to next tasks without user consent
+- ❌ **VALIDATE different Excel files when specific lines were requested**
+- ❌ **MARK todo items as "completed" when they actually failed**
+- ❌ **PROCEED without blocking dependencies being satisfied**
 
 ### **ALWAYS:**
 - ✅ Use production_scraper.py for testing
@@ -209,6 +232,9 @@ python excel_validator.py output/Lines_126_Report_*.xlsx
 - ✅ Consult PRODUCT_NAME_COMPONENT_ANALYSIS.md for matching
 - ✅ Ask "What would you like me to do next?"
 - ✅ Apply new scoring weights (10%/40%/50%)
+- ✅ **WAIT for actual scraper completion before validation**
+- ✅ **VALIDATE only exact files from requested lines**
+- ✅ **MAINTAIN strict sequential blocking: Scraping → Validation → Presentation**
 
 ---
 
