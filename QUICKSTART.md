@@ -28,7 +28,7 @@
 
 ### 1. Prepare Source Excel File
 
-Create an Excel file with products (starting at row 4):
+Create an Excel file with products (starting at row 2):
 - Column A: Row number
 - Column B: Product name
 - Column C: Original price

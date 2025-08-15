@@ -710,7 +710,7 @@ class NaturalLanguageCLI:
             
             # Read products from source
             print("📖 Reading products from source Excel...")
-            reader = SourceExcelReader(config.get("excel.start_row", 4))
+            reader = SourceExcelReader(config.get("excel.start_row", 2))
             products = reader.read_products(source_file)
             print(f"✅ Found {len(products)} products")
             

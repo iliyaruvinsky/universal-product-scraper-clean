@@ -193,7 +193,7 @@ Every product MUST pass:
 - **Component Scoring**: ≥8.0/10.0 threshold (80% minimum)
 
 ### **3. EXCEL PROCESSING RULES**
-- **SOURCE files**: Read-only, start at row 4 (rows 1-3 are headers)
+- **SOURCE files**: Read-only, start at row 2 (row 1 is headers)
 - **TARGET files**: Include Hebrew headers, dual worksheets (פירוט + סיכום)
 - **Validation**: MANDATORY excel_validator.py post-processing
 

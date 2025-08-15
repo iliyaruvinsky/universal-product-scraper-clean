@@ -84,7 +84,7 @@ Row    Product Name        Reference Price
 - Column A: Row number (starting from 4)
 - Column B: Product name (Hebrew/English/Mixed)
 - Column C: Reference/official price (numeric)
-- Data starts at row 4 (rows 1-3 reserved for headers/metadata)
+- Data starts at row 2 (row 1 reserved for headers)
 
 ---
 

@@ -188,7 +188,7 @@ python examples/run_scraper.py
 - Column A: Row number
 - Column B: Product name
 - Column C: Original/Official price
-- Data starts at row 4
+- Data starts at row 2
 
 **Target File (2 Worksheets):**
 

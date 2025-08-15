@@ -154,7 +154,7 @@ class ScraperConfig:
 @dataclass
 class ExcelConfig:
     """Configuration for Excel operations."""
-    start_row: int = 4
+    start_row: int = 2
     encoding: str = "utf-8"
     date_format: str = "%Y-%m-%d %H:%M:%S"
     
