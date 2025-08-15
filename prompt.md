@@ -479,6 +479,40 @@ python natural_cli.py
 
 ---
 
+## 📊 **MANDATORY: Comparison Test Reporting Format**
+
+**Priority**: HIGHEST | **Always Apply**: true
+
+**STANDARDIZED COMPARISON FORMAT:**
+When conducting comparison tests (mode differences, product variations, algorithm changes), ALWAYS present results using this exact format:
+
+```
+🎯 COMPLETE COMPARISON ANALYSIS: [TEST TYPE DESCRIPTION]
+
+📊 COMPREHENSIVE RESULTS TABLE:
+
+| Metric            | [CONDITION A]                        | [CONDITION B]                        | Analysis                   |
+|-------------------|--------------------------------------|--------------------------------------|----------------------------|
+| Vendors Found     | X                                    | Y                                    | ✅/❌ Consistency status    |
+| Vendors Validated | X                                    | Y                                    | ✅/❌ Validation status     |
+| Processing Time   | X.Xs                                 | Y.Ys                                 | Z% difference description  |
+| Model ID          | XXXXXXX                              | XXXXXXX                              | ✅/❌ Detection consistency |
+| Method Used       | Method description                   | Method description                   | ✅/❌ Algorithm consistency |
+| Price Range       | ₪X,XXX - ₪Y,YYY                      | ₪X,XXX - ₪Y,YYY                      | ✅/❌ Pricing consistency   |
+| Excel Validation  | X% valid                             | Y% valid                             | ✅/❌ Quality consistency   |
+| Output Files      | Filename_timestamp.xlsx              | Filename_timestamp.xlsx              | File differences          |
+```
+
+**EXAMPLES:**
+- HEADLESS vs EXPLICIT MODE
+- LINE X vs LINE Y (same mode)  
+- OLD vs NEW algorithm versions
+- SINGLE vs BATCH processing
+
+**ENFORCEMENT:** All comparison tests MUST use this standardized table format for consistent analysis and documentation.
+
+---
+
 ## 🎯 **TESTING PROTOCOL COMPLETE**
 
 **This prompt provides complete coverage for:**
