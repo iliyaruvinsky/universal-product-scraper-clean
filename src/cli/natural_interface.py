@@ -18,6 +18,7 @@ from src.api.scraper_service import ScraperService
 from src.api.validation_service import ValidationService
 from src.api.results_service import ResultsService
 from src.api.status_service import StatusService
+from src.api.summary_service import SummaryService
 
 logger = get_logger(__name__)
 
@@ -44,6 +45,7 @@ class NaturalLanguageCLI:
         self.validation_service = ValidationService()
         self.results_service = ResultsService()
         self.status_service = StatusService()
+        self.summary_service = SummaryService()
         
     def start_interactive_session(self, auth_manager=None):
         """Start the main interactive session."""
@@ -865,6 +867,9 @@ class NaturalLanguageCLI:
                 if result_code == 0:
                     print(f"\n✅ Scraping completed successfully!")
                     print(f"📁 Results saved to: {target_file}")
+                    
+                    # Generate and display post-processing summary
+                    self._display_post_processing_summary(target_file, row_selection)
                 else:
                     print(f"\n❌ Scraping failed with exit code {result_code}")
                     
@@ -904,6 +909,9 @@ class NaturalLanguageCLI:
                     # Convert to absolute path for clear logging
                     abs_target_file = str(Path(target_file).resolve())
                     print(f"📁 Results saved to: {abs_target_file}")
+                    
+                    # Generate and display post-processing summary
+                    self._display_post_processing_summary(abs_target_file, row_selection)
                 else:
                     print(f"\n❌ Scraping failed with exit code {result.returncode}")
                     
@@ -1683,6 +1691,48 @@ class NaturalLanguageCLI:
                 
         except Exception as e:
             print(f"❌ Error loading performance metrics: {e}")
+    
+    def _display_post_processing_summary(self, excel_file_path: str, row_selection: Dict[str, Any]):
+        """Display comprehensive post-processing summary."""
+        try:
+            # Determine operation type based on row selection
+            operation_type = self._determine_operation_type(row_selection)
+            
+            # Generate summary using SummaryService
+            summary = self.summary_service.generate_post_processing_summary(excel_file_path, operation_type)
+            
+            if "error" in summary:
+                print(f"\n⚠️  Could not generate detailed summary: {summary['error']}")
+                return
+            
+            # Display the formatted summary
+            formatted_display = summary.get("formatted_display", "")
+            if formatted_display:
+                print(formatted_display)
+            else:
+                print("\n⚠️  Summary generated but no display content available")
+                
+        except Exception as e:
+            logger.error(f"Error displaying post-processing summary: {e}")
+            print(f"\n⚠️  Could not generate post-processing summary: {e}")
+    
+    def _determine_operation_type(self, row_selection: Dict[str, Any]) -> str:
+        """Determine the operation type based on row selection parameters."""
+        try:
+            product_count = row_selection.get('product_count', 1)
+            selection_type = row_selection.get('type', 'single')
+            
+            if product_count == 1:
+                return "single"
+            elif product_count <= 5:
+                return "batch"
+            elif product_count > 20 or selection_type == 'stress':
+                return "stress"
+            else:
+                return "range"
+                
+        except Exception:
+            return "batch"  # Default fallback
 
 
 def main():

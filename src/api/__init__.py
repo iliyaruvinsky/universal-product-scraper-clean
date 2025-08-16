@@ -9,10 +9,12 @@ from .scraper_service import ScraperService
 from .validation_service import ValidationService  
 from .results_service import ResultsService
 from .status_service import StatusService
+from .summary_service import SummaryService
 
 __all__ = [
     'ScraperService',
     'ValidationService', 
     'ResultsService',
-    'StatusService'
+    'StatusService',
+    'SummaryService'
 ]
