@@ -153,8 +153,18 @@ def search_and_filter_product(driver, product_name):
             except:
                 pass
         
-        # Step 4: If no dropdown, press Enter to search
-        print(f"⚠️ No dropdown found, pressing Enter to search")
+        # SUB-OPTION 1B: Fallback to space format if 1A failed
+        print(f"🔍 SUB-OPTION 1A failed, trying SUB-OPTION 1B (space format)...")
+        
+        # Clear search box and enter space-separated format
+        search_box = WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "#acSearch-input"))
+        )
+        search_box.click()
+        time.sleep(1)
+        search_box.clear()
+        search_box.send_keys(product_name)  # Use original space-separated format
+        print(f"🔍 SUB-OPTION 1B: Entered space format: {product_name}")
         search_box.send_keys(Keys.ENTER)
         time.sleep(5 if HEADLESS_MODE else 3)
         
@@ -164,11 +174,18 @@ def search_and_filter_product(driver, product_name):
             if product_links:
                 print(f"✅ Found {len(product_links)} product links in results")
                 
-                # CRITICAL FIX: Filter out non-HVAC products
+                # ENHANCED VALIDATION: Use scoring engine to find best match
                 from src.hebrew.text_processor import HebrewTextProcessor
-                hebrew_processor = HebrewTextProcessor()
+                from src.validation.scoring_engine import ProductScoringEngine
                 
-                valid_link = None
+                hebrew_processor = HebrewTextProcessor()
+                scoring_engine = ProductScoringEngine()
+                
+                # Track best match with scoring
+                best_match = None
+                best_score = 0.0
+                best_match_text = ""
+                
                 for link in product_links:
                     try:
                         link_text = link.text.strip()
@@ -181,21 +198,40 @@ def search_and_filter_product(driver, product_name):
                             continue
                         
                         # Check if this is an HVAC product
-                        if hebrew_processor.contains_hvac_keywords(combined_text):
-                            print(f"✅ ACCEPTED HVAC product: {link_text[:50]}...")
-                            valid_link = link
-                            break
-                        else:
+                        if not hebrew_processor.contains_hvac_keywords(combined_text):
                             print(f"🚫 REJECTED non-HVAC product: {link_text[:50]}...")
-                    except:
+                            continue
+                        
+                        # NEW: Score-based validation for HVAC products
+                        scoring_result = scoring_engine.calculate_match_score(
+                            product_name,  # Original search term
+                            link_text      # Found product name
+                        )
+                        
+                        print(f"📊 Evaluating HVAC match: {link_text[:50]}... Score: {scoring_result.total_score:.1f}/10")
+                        
+                        # Track best match
+                        if scoring_result.total_score > best_score:
+                            best_score = scoring_result.total_score
+                            best_match = link
+                            best_match_text = link_text
+                            
+                    except Exception as e:
+                        print(f"⚠️ Error evaluating link: {e}")
                         continue
                 
-                if valid_link:
-                    model_url = valid_link.get_attribute('href')
-                    print(f"📍 Navigating to valid HVAC product: {model_url}")
+                # Accept best match only if above threshold (8.0/10 as per CLAUDE.md)
+                if best_match and best_score >= 8.0:
+                    model_url = best_match.get_attribute('href')
+                    print(f"✅ ACCEPTED best match (score {best_score:.1f}/10): {best_match_text[:50]}...")
+                    print(f"📍 Navigating to: {model_url}")
                     driver.get(model_url)
                     time.sleep(5 if HEADLESS_MODE else 3)
                     return "success", model_url
+                elif best_match:
+                    print(f"❌ Best match scored {best_score:.1f}/10 (below 8.0 threshold): {best_match_text[:50]}...")
+                    print(f"❌ No products met the validation threshold")
+                    return "no_valid_products", driver.current_url
                 else:
                     print(f"❌ No valid HVAC products found among {len(product_links)} results")
                     return "no_valid_products", driver.current_url
