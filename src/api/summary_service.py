@@ -664,26 +664,15 @@ class SummaryService:
         lines.append("📊 COMPREHENSIVE SCRAPING SUMMARY")
         lines.append("="*80)
         
-        # Table 1: Product Overview (Product Name | Line Number)
+        # Single comprehensive table with all information
         lines.append("\n📋 PRODUCTS PROCESSED:")
         lines.append("")
-        lines.append("| Product Name                 | Line Number |")
-        lines.append("|------------------------------|-------------|")
+        lines.append("| Line | Product Name                 | Vendors | Model ID | Cheapest Price |")
+        lines.append("|------|------------------------------|---------|----------|----------------|")
         
         # Extract line numbers from filename or use index
         rows_processed = file_info.get('rows_processed', '')
         line_numbers = self._extract_line_numbers_list(rows_processed, len(products))
-        
-        for i, product in enumerate(products):
-            name = product.get("name", "Unknown")[:29]  # Truncate to fit table
-            line_num = line_numbers[i] if i < len(line_numbers) else "N/A"
-            lines.append(f"| {name:<28} | {line_num:>11} |")
-        
-        # Table 2: Detailed Results (Line | Product | Vendors | Model ID | Cheapest Price)
-        lines.append("\n📊 DETAILED RESULTS:")
-        lines.append("")
-        lines.append("| Line | Product                      | Vendors | Model ID | Cheapest Price |")
-        lines.append("|------|------------------------------|---------|----------|----------------|")
         
         for i, product in enumerate(products):
             line_num = line_numbers[i] if i < len(line_numbers) else "N/A"
