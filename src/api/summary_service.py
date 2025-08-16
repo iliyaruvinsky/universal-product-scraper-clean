@@ -118,6 +118,14 @@ class SummaryService:
             if "סיכום" in workbook.sheetnames:
                 summary_analysis = self._analyze_summary_sheet(workbook["סיכום"])
                 analysis.update(summary_analysis)
+                
+                # Update products with model IDs from summary sheet
+                model_ids = summary_analysis.get("model_ids", [])
+                products = analysis.get("products", [])
+                
+                for i, product in enumerate(products):
+                    if i < len(model_ids):
+                        product["model_id"] = model_ids[i]
             
             workbook.close()
             return analysis
@@ -139,59 +147,76 @@ class SummaryService:
             products_seen = set()
             model_ids_seen = set()
             
-            # Analyze data rows (skip header)
-            for row in range(2, min(sheet.max_row + 1, 1000)):  # Limit to avoid huge files
+            # Hebrew Excel format: שורת מקור (A), שם מוצר (B), מחיר (C), שם ספק (D), שם מוצר באתר הספק (E)
+            products_data = {}  # line_number -> product info
+            
+            # Parse all data rows (skip header row 1)
+            for row in range(2, sheet.max_row + 1):
                 try:
-                    # Extract product name (usually column B or C)
-                    product_name = None
-                    for col in range(1, 6):  # Check first few columns
-                        cell_value = sheet.cell(row=row, column=col).value
-                        if cell_value and isinstance(cell_value, str) and len(cell_value) > 10:
-                            product_name = cell_value
-                            break
+                    # Column A: Line number (שורת מקור)
+                    line_number = sheet.cell(row=row, column=1).value
+                    if not line_number:
+                        continue
                     
-                    # Extract vendor name (usually around column E-G)
-                    vendor_name = None
-                    for col in range(4, 8):
-                        cell_value = sheet.cell(row=row, column=col).value
-                        if cell_value and isinstance(cell_value, str) and len(cell_value) > 2:
-                            vendor_name = cell_value
-                            break
+                    # Column B: Product name (שם מוצר) 
+                    product_name = sheet.cell(row=row, column=2).value
+                    if not product_name:
+                        continue
                     
-                    # Extract price (look for numeric values)
+                    # Column C: Price (מחיר)
+                    price_cell = sheet.cell(row=row, column=3).value
                     price = None
-                    for col in range(6, 12):
-                        cell_value = sheet.cell(row=row, column=col).value
-                        if cell_value and isinstance(cell_value, (int, float)) and cell_value > 0:
-                            price = float(cell_value)
-                            prices.append(price)
-                            break
+                    if price_cell:
+                        # Handle price format like "₪10,970.0"
+                        if isinstance(price_cell, str):
+                            price_str = price_cell.replace("₪", "").replace(",", "")
+                            try:
+                                price = float(price_str)
+                            except:
+                                pass
+                        elif isinstance(price_cell, (int, float)):
+                            price = float(price_cell)
                     
-                    # Extract Model ID (look for numeric IDs)
-                    model_id = None
-                    for col in range(12, 16):
-                        cell_value = sheet.cell(row=row, column=col).value
-                        if cell_value and isinstance(cell_value, (int, str)):
-                            model_id_str = str(cell_value)
-                            if model_id_str.isdigit() and len(model_id_str) >= 6:
-                                model_id = model_id_str
-                                model_ids_seen.add(model_id)
-                                break
+                    # Column D: Vendor name (שם ספק)
+                    vendor_name = sheet.cell(row=row, column=4).value
+                    
+                    if price and price > 0:
+                        prices.append(price)
                     
                     if vendor_name:
                         analysis["total_vendors"] += 1
                     
-                    if product_name and product_name not in products_seen:
-                        products_seen.add(product_name)
-                        analysis["products"].append({
+                    # Group by line number
+                    line_key = str(line_number)
+                    if line_key not in products_data:
+                        products_data[line_key] = {
                             "name": product_name,
-                            "vendor_count": 1,  # Will be updated in second pass
-                            "cheapest_price": price,
-                            "model_id": model_id
-                        })
+                            "line_number": line_number,
+                            "vendors": [],
+                            "prices": []
+                        }
+                    
+                    # Add vendor and price info
+                    if vendor_name:
+                        products_data[line_key]["vendors"].append(vendor_name)
+                    if price and price > 0:
+                        products_data[line_key]["prices"].append(price)
                         
                 except Exception:
                     continue
+            
+            # Convert to products list with proper vendor counts and cheapest prices
+            for line_key, product_info in products_data.items():
+                cheapest_price = min(product_info["prices"]) if product_info["prices"] else None
+                vendor_count = len(product_info["vendors"])
+                
+                analysis["products"].append({
+                    "name": product_info["name"],
+                    "line_number": product_info["line_number"],
+                    "vendor_count": vendor_count,
+                    "cheapest_price": cheapest_price,
+                    "model_id": "Unknown"  # Will be updated from summary sheet
+                })
             
             # Calculate price statistics
             if prices:
@@ -217,22 +242,29 @@ class SummaryService:
     def _analyze_summary_sheet(self, sheet) -> Dict[str, Any]:
         """Analyze the סיכום (Summary) worksheet."""
         try:
-            analysis = {"validation_success_rate": 0.0}
+            analysis = {"validation_success_rate": 0.0, "model_ids": []}
+            model_ids_found = []
             
-            # Look for validation success rate in summary sheet
-            for row in range(1, min(sheet.max_row + 1, 10)):
+            # Look for model IDs and validation success rate in summary sheet
+            for row in range(1, min(sheet.max_row + 1, 20)):
                 for col in range(1, min(sheet.max_column + 1, 10)):
                     cell_value = sheet.cell(row=row, column=col).value
-                    if cell_value and isinstance(cell_value, (int, float)):
+                    if cell_value:
+                        # Look for model IDs (7-digit numbers)
+                        if isinstance(cell_value, (int, str)):
+                            model_str = str(cell_value)
+                            if model_str.isdigit() and len(model_str) >= 6:
+                                model_ids_found.append(model_str)
                         # Look for percentage values that might be success rates
-                        if 0 <= cell_value <= 100:
-                            analysis["validation_success_rate"] = float(cell_value)
-                            break
+                        elif isinstance(cell_value, (int, float)):
+                            if 0 <= cell_value <= 100:
+                                analysis["validation_success_rate"] = float(cell_value)
             
+            analysis["model_ids"] = model_ids_found
             return analysis
             
         except Exception:
-            return {"validation_success_rate": 0.0}
+            return {"validation_success_rate": 0.0, "model_ids": []}
     
     def _generate_operation_insights(self, excel_analysis: Dict[str, Any], operation_type: str) -> Dict[str, Any]:
         """Generate operation-specific insights with advanced analytics."""
@@ -619,6 +651,90 @@ class SummaryService:
         except Exception as e:
             return f"\n❌ Error formatting summary display: {e}\n"
     
+    def _generate_comprehensive_summary_tables(self, excel_analysis: Dict[str, Any], 
+                                             file_info: Dict[str, Any]) -> str:
+        """Generate comprehensive summary tables for all operations."""
+        lines = []
+        products = excel_analysis.get("products", [])
+        
+        if not products:
+            return "\n⚠️  No products found for summary tables"
+        
+        lines.append("\n" + "="*80)
+        lines.append("📊 COMPREHENSIVE SCRAPING SUMMARY")
+        lines.append("="*80)
+        
+        # Table 1: Product Overview (Product Name | Line Number)
+        lines.append("\n📋 PRODUCTS PROCESSED:")
+        lines.append("")
+        lines.append("| Product Name                 | Line Number |")
+        lines.append("|------------------------------|-------------|")
+        
+        # Extract line numbers from filename or use index
+        rows_processed = file_info.get('rows_processed', '')
+        line_numbers = self._extract_line_numbers_list(rows_processed, len(products))
+        
+        for i, product in enumerate(products):
+            name = product.get("name", "Unknown")[:29]  # Truncate to fit table
+            line_num = line_numbers[i] if i < len(line_numbers) else "N/A"
+            lines.append(f"| {name:<28} | {line_num:>11} |")
+        
+        # Table 2: Detailed Results (Line | Product | Vendors | Model ID | Cheapest Price)
+        lines.append("\n📊 DETAILED RESULTS:")
+        lines.append("")
+        lines.append("| Line | Product                      | Vendors | Model ID | Cheapest Price |")
+        lines.append("|------|------------------------------|---------|----------|----------------|")
+        
+        for i, product in enumerate(products):
+            line_num = line_numbers[i] if i < len(line_numbers) else "N/A"
+            name = product.get("name", "Unknown")[:28]  # Truncate to fit table
+            vendor_count = product.get("vendor_count", 0)
+            model_id = product.get("model_id", "Unknown")
+            cheapest_price = product.get("cheapest_price", 0)
+            
+            # Handle None prices
+            if cheapest_price is None:
+                cheapest_price = 0
+            
+            # Format price nicely
+            if cheapest_price > 0:
+                price_str = f"₪{cheapest_price:,.0f}"
+            else:
+                price_str = "₪0"
+            
+            lines.append(f"| {str(line_num):>4} | {name:<28} | {vendor_count:>7} | {model_id:>8} | {price_str:>14} |")
+        
+        lines.append("")
+        lines.append("="*80)
+        
+        return "\n".join(lines)
+    
+    def _extract_line_numbers_list(self, rows_processed: str, product_count: int) -> List[str]:
+        """Extract line numbers from filename or generate sequence."""
+        line_numbers = []
+        
+        if not rows_processed or rows_processed == "unknown":
+            # Generate sequential numbers starting from 2
+            return [str(i + 2) for i in range(product_count)]
+        
+        # Handle different formats
+        if '-' in str(rows_processed):
+            # Range format like "126-127" or "2-18-125-61"
+            parts = str(rows_processed).split('-')
+            if len(parts) == 2 and parts[0].isdigit() and parts[1].isdigit():
+                # Simple range like "126-127"
+                start, end = int(parts[0]), int(parts[1])
+                return [str(i) for i in range(start, end + 1)]
+            else:
+                # Complex format like "2-18-125-61" - use all parts
+                return [part for part in parts if part.isdigit()]
+        elif str(rows_processed).isdigit():
+            # Single number
+            return [str(rows_processed)]
+        
+        # Fallback
+        return [str(i + 2) for i in range(product_count)]
+    
     def _format_single_product_summary(self, file_info: Dict[str, Any], excel_analysis: Dict[str, Any], 
                                      operation_insights: Dict[str, Any]) -> str:
         """Format summary for single product processing."""
@@ -660,6 +776,10 @@ class SummaryService:
         
         lines.append(f"\n🎯 Single product analysis complete - {total_vendors} vendor options available!")
         lines.append("="*80)
+        
+        # Add comprehensive summary tables
+        comprehensive_tables = self._generate_comprehensive_summary_tables(excel_analysis, file_info)
+        lines.append(comprehensive_tables)
         
         return "\n".join(lines)
     
@@ -708,6 +828,10 @@ class SummaryService:
         
         lines.append(f"\n✅ Batch processing optimization complete!")
         lines.append("="*80)
+        
+        # Add comprehensive summary tables
+        comprehensive_tables = self._generate_comprehensive_summary_tables(excel_analysis, file_info)
+        lines.append(comprehensive_tables)
         
         return "\n".join(lines)
     
@@ -803,6 +927,8 @@ class SummaryService:
                 vendor_count = product.get("vendor_count", "N/A")
                 model_id = product.get("model_id", "Unknown")
                 cheapest = product.get("cheapest_price", 0)
+                if cheapest is None:
+                    cheapest = 0
                 
                 # Extract line number if possible
                 line_num = "N/A"
@@ -835,6 +961,10 @@ class SummaryService:
         
         lines.append(f"\n🏆 Stress test validation complete - system proven at maximum diversity!")
         lines.append("="*80)
+        
+        # Add comprehensive summary tables
+        comprehensive_tables = self._generate_comprehensive_summary_tables(excel_analysis, file_info)
+        lines.append(comprehensive_tables)
         
         return "\n".join(lines)
     
@@ -886,6 +1016,10 @@ class SummaryService:
         lines.append(f"\n📊 Range processing analysis complete!")
         lines.append("="*80)
         
+        # Add comprehensive summary tables
+        comprehensive_tables = self._generate_comprehensive_summary_tables(excel_analysis, file_info)
+        lines.append(comprehensive_tables)
+        
         return "\n".join(lines)
     
     def _format_generic_summary(self, file_info: Dict[str, Any], excel_analysis: Dict[str, Any], 
@@ -921,6 +1055,10 @@ class SummaryService:
         lines.append("")
         lines.append("✅ Summary generation complete. Excel file ready for analysis!")
         lines.append("="*80)
+        
+        # Add comprehensive summary tables
+        comprehensive_tables = self._generate_comprehensive_summary_tables(excel_analysis, file_info)
+        lines.append(comprehensive_tables)
         
         return "\n".join(lines)
     

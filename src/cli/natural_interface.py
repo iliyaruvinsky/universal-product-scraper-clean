@@ -193,7 +193,7 @@ class NaturalLanguageCLI:
         default_source = "data/SOURCE.xlsx"
         if os.path.exists(default_source):
             print(f"\n✅ Found default source file: {default_source}")
-            choice = input("👉 Use this file? (Y/n): ").strip().lower()
+            choice = input("👉 Use this file? (Y/N): ").strip().lower()
             if choice in ['', 'y', 'yes']:
                 return default_source
         
@@ -590,7 +590,7 @@ class NaturalLanguageCLI:
             print(f"   Processing {product_count} products (>10) requires headless mode.")
             print(f"   This ensures stability and optimal performance.")
             
-            confirm = input("\n👉 Continue with headless mode? (Y/n): ").strip().lower()
+            confirm = input("\n👉 Continue with headless mode? (Y/N): ").strip().lower()
             if confirm in ['', 'y', 'yes']:
                 return 'headless'
             else:
@@ -680,7 +680,7 @@ class NaturalLanguageCLI:
         
         print(f"\n" + "-"*50)
         
-        confirm = input("👉 Everything looks good? Start scraping? (Y/n): ").strip().lower()
+        confirm = input("👉 Everything looks good? Start scraping? (Y/N): ").strip().lower()
         return confirm in ['', 'y', 'yes']
     
     def direct_scraping_execution(self, source_file: str, target_file: str,
@@ -880,22 +880,31 @@ class NaturalLanguageCLI:
         else:
             # Use subprocess when running from development environment
             cmd_parts = [
-                "python", "src/main.py",
-                "--source", source_file,
-                "--target", target_file,
-                "--mode", mode
+                "python", "production_scraper.py"
             ]
             
-            # Add selection parameters based on type
+            # Add headless flag if needed
+            if mode == "headless":
+                cmd_parts.append("--headless")
+            
+            # Add line numbers based on selection type
             if row_selection['type'] == 'first_n':
-                cmd_parts.extend(["--limit", str(row_selection['count'])])
+                # Add first N line numbers starting from row 2
+                for i in range(2, 2 + row_selection['count']):
+                    cmd_parts.append(str(i))
             elif row_selection['type'] == 'custom_range':
-                rows_param = f"{row_selection['start_row']}-{row_selection['end_row']}"
-                cmd_parts.extend(["--rows", rows_param])
+                # Add range of line numbers
+                start = row_selection['start_row']
+                end = row_selection['end_row']
+                for i in range(start, end + 1):
+                    cmd_parts.append(str(i))
             elif row_selection['type'] == 'all':
-                pass  # No additional parameters needed
+                # Add all available row numbers (2-144 based on SOURCE.xlsx)
+                for i in range(2, 145):
+                    cmd_parts.append(str(i))
             else:
-                cmd_parts.extend(["--limit", "5"])  # Fallback
+                # Fallback - just process row 2
+                cmd_parts.append("2")
             
             cmd_str = " ".join(cmd_parts)
             print(f"📋 Executing: {cmd_str}")
@@ -906,12 +915,21 @@ class NaturalLanguageCLI:
                 
                 if result.returncode == 0:
                     print(f"\n✅ Scraping completed successfully!")
-                    # Convert to absolute path for clear logging
-                    abs_target_file = str(Path(target_file).resolve())
-                    print(f"📁 Results saved to: {abs_target_file}")
                     
-                    # Generate and display post-processing summary
-                    self._display_post_processing_summary(abs_target_file, row_selection)
+                    # Find the most recent Excel file in output directory
+                    output_dir = Path("output")
+                    if output_dir.exists():
+                        excel_files = sorted(output_dir.glob("*.xlsx"), key=lambda x: x.stat().st_mtime, reverse=True)
+                        if excel_files:
+                            latest_file = str(excel_files[0])
+                            print(f"📁 Results saved to: {latest_file}")
+                            
+                            # Generate and display post-processing summary
+                            self._display_post_processing_summary(latest_file, row_selection)
+                        else:
+                            print("⚠️  No Excel output file found")
+                    else:
+                        print("⚠️  Output directory not found")
                 else:
                     print(f"\n❌ Scraping failed with exit code {result.returncode}")
                     
@@ -967,7 +985,7 @@ class NaturalLanguageCLI:
         print(f"   💾 Output: {target_file}")
         print(f"   ⏱️  Estimated time: ~5 minutes (optimal test product)")
         
-        confirm = input("\n👉 Start quick test? (Y/n): ").strip().lower()
+        confirm = input("\n👉 Start quick test? (Y/N): ").strip().lower()
         if confirm in ['', 'y', 'yes']:
             self.execute_scraping_session(source_file, target_file, row_selection, 'explicit')
     
@@ -1044,7 +1062,7 @@ class NaturalLanguageCLI:
         print(f"   💾 Output: {target_file}")
         print(f"   ⏱️  Estimated time: ~{est_minutes:.0f} minutes")
         
-        confirm = input("\n👉 Start small batch scraping? (Y/n): ").strip().lower()
+        confirm = input("\n👉 Start small batch scraping? (Y/N): ").strip().lower()
         if confirm in ['', 'y', 'yes']:
             self.execute_scraping_session(source_file, target_file, row_selection, mode)
     
@@ -1134,7 +1152,7 @@ class NaturalLanguageCLI:
         print(f"   ⏱️  Estimated time: ~{est_minutes:.0f} minutes")
         print(f"   🔥 This will run in background - you can use your computer normally")
         
-        confirm = input("\n👉 Start large batch scraping? (Y/n): ").strip().lower()
+        confirm = input("\n👉 Start large batch scraping? (Y/N): ").strip().lower()
         if confirm in ['', 'y', 'yes']:
             self.execute_scraping_session(source_file, target_file, row_selection, mode)
     
@@ -1227,7 +1245,7 @@ class NaturalLanguageCLI:
         print(f"   💾 Output: {target_file}")
         print(f"   ⏱️  Estimated time: ~3-5 minutes")
         
-        confirm = input("\n👉 Start single product validation? (Y/n): ").strip().lower()
+        confirm = input("\n👉 Start single product validation? (Y/N): ").strip().lower()
         if confirm in ['', 'y', 'yes']:
             self.execute_scraping_session(source_file, target_file, row_selection, mode)
     
