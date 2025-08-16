@@ -1,4 +1,4 @@
-# 🔄 GitHub Workflow Guide
+1# 🔄 GitHub Workflow Guide
 
 ## 📁 **Available Scripts**
 
@@ -10,12 +10,14 @@
 ## 🖥️ **Setting Up on New Computer**
 
 1. **Clone Repository**:
+
    ```bash
    git clone https://github.com/iliyaruvinsky/universal-product-scraper-clean.git
    cd universal-product-scraper-clean
    ```
 
 2. **Install Dependencies**:
+
    ```bash
    pip install -r requirements.txt
    ```
@@ -27,6 +29,7 @@
 ## 🔄 **Daily Workflow**
 
 ### **Before Starting Work** (Pull Latest Changes)
+
 ```bash
 # Option 1: Use script
 double-click pull_latest.bat
@@ -36,6 +39,7 @@ git pull origin main
 ```
 
 ### **After Making Changes** (Commit & Push)
+
 ```bash
 # Use smart commit script (recommended)
 double-click smart_commit.bat
@@ -50,6 +54,7 @@ double-click smart_commit.bat
 ```
 
 ### **Working with Versions**
+
 ```bash
 # View all versions
 double-click switch_version.bat → Option 1
@@ -64,12 +69,14 @@ double-click switch_version.bat → Option 3
 ## 🏷️ **Version Tagging Strategy**
 
 ### **Version Format**: `vX.Y-description`
+
 - `v1.0-working-vendor-extraction` - Current working version
 - `v1.1-enhanced-validation` - Next improvement
 - `v1.2-performance-optimized` - Performance update
 - `v2.0-major-rewrite` - Major changes
 
-### **When to Create Versions**:
+### **When to Create Versions**
+
 - ✅ Working scraper with new feature
 - ✅ Important bug fixes
 - ✅ Before major changes (backup point)
@@ -78,10 +85,12 @@ double-click switch_version.bat → Option 3
 ## 🌿 **Branching Strategy**
 
 ### **Main Branch**: `main`
+
 - Always working, tested code
 - Never commit broken code here
 
-### **Feature Branches**:
+### **Feature Branches**
+
 ```bash
 # Create feature branch
 git checkout -b feature-excel-improvements
@@ -90,7 +99,8 @@ git push origin feature-excel-improvements
 # Merge when ready
 ```
 
-### **Hotfix Branches**:
+### **Hotfix Branches**
+
 ```bash
 # Quick fixes
 git checkout -b hotfix-price-parsing
@@ -99,7 +109,8 @@ git checkout -b hotfix-price-parsing
 
 ## 🚨 **Emergency Procedures**
 
-### **Revert to Last Working Version**:
+### **Revert to Last Working Version**
+
 ```bash
 # If current code is broken
 git checkout v1.0-working-vendor-extraction
@@ -107,7 +118,8 @@ git checkout -b emergency-fix
 # Fix the issue, then merge back
 ```
 
-### **Recover Deleted Files**:
+### **Recover Deleted Files**
+
 ```bash
 # Show deleted files
 git log --diff-filter=D --summary
@@ -118,13 +130,15 @@ git checkout HEAD~1 -- filename.py
 
 ## 👥 **Multi-Computer Sync**
 
-### **Computer A** (Make changes):
+### **Computer A** (Make changes)
+
 ```bash
 # Make changes
 double-click smart_commit.bat
 ```
 
-### **Computer B** (Get changes):
+### **Computer B** (Get changes)
+
 ```bash
 # Get latest
 double-click pull_latest.bat
@@ -133,7 +147,8 @@ double-click pull_latest.bat
 
 ## 📊 **Monitoring & History**
 
-### **View History**:
+### **View History**
+
 ```bash
 # Recent commits
 git log --oneline -10
@@ -145,7 +160,8 @@ git log --oneline production_scraper.py
 git diff HEAD~1
 ```
 
-### **Compare Versions**:
+### **Compare Versions**
+
 ```bash
 # Compare two versions
 git diff v1.0-working-vendor-extraction v1.1-enhanced-validation
@@ -173,4 +189,4 @@ git diff v1.0..v1.1 production_scraper.py
 | Create version | Smart commit → Release | `git tag -a v1.1 -m "msg"` |
 | New computer | `setup_on_new_computer.bat` | `git clone ...` |
 
-🎯 **Repository**: https://github.com/iliyaruvinsky/universal-product-scraper-clean
+🎯 **Repository**: <https://github.com/iliyaruvinsky/universal-product-scraper-clean>

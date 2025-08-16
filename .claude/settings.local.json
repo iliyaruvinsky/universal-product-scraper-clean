@@ -4,7 +4,15 @@
       "Bash(python:*)",
       "Bash(timeout:*)",
       "Bash(del \"data\\~$SOURCE.xlsx\")",
-      "Bash(del \"output\\~$Lines_127_Report_20250815_161500.xlsx\")"
+      "Bash(del \"output\\~$Lines_127_Report_20250815_161500.xlsx\")",
+      "Bash(git commit:*)",
+      "Bash(taskkill:*)",
+      "Bash(cmd /c:*)",
+      "Bash(powershell:*)",
+      "Bash(dir:*)",
+      "Bash(git add:*)",
+      "Bash(mkdir:*)",
+      "Bash(mv:*)"
     ],
     "deny": [],
     "ask": []

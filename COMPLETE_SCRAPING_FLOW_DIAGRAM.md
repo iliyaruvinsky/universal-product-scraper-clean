@@ -1,4 +1,4 @@
-# 🔄 COMPLETE SCRAPING PROCESS FLOW DIAGRAM
+precise# 🔄 COMPLETE SCRAPING PROCESS FLOW DIAGRAM
 
 **Universal Product Scraper - All Elements and Scripts**  
 **Generated**: August 14, 2025 20:05  
@@ -327,6 +327,7 @@ UNIVERSAL_LAUNCHER.bat → User choice → Appropriate path
 ### **🎯 ESSENTIAL FILES FOR CLEAN CORE CONTEXT:**
 
 #### **ROOT LEVEL FILES:**
+
 ```
 ✅ extract_claude.md                   # Project rules and nomenclature
 ✅ LLM_HANDOVER.md                      # Session handover
@@ -347,6 +348,7 @@ UNIVERSAL_LAUNCHER.bat → User choice → Appropriate path
 ```
 
 #### **CONFIGURATION:**
+
 ```
 ✅ config/
    ├── default_config.json             # System configuration
@@ -354,6 +356,7 @@ UNIVERSAL_LAUNCHER.bat → User choice → Appropriate path
 ```
 
 #### **SOURCE DATA:**
+
 ```
 ✅ data/
    ├── SOURCE.xlsx                     # Input product data ⭐ CRITICAL
@@ -363,6 +366,7 @@ UNIVERSAL_LAUNCHER.bat → User choice → Appropriate path
 ```
 
 #### **SOURCE CODE:**
+
 ```
 ✅ src/
    ├── __init__.py
@@ -396,6 +400,7 @@ UNIVERSAL_LAUNCHER.bat → User choice → Appropriate path
 ```
 
 #### **CRITICAL DOCUMENTATION:**
+
 ```
 ✅ docs/
    ├── OPTION_1_DETAILED_FLOW.md       # OPTION_1 scoring rules ⭐ CRITICAL
@@ -405,12 +410,14 @@ UNIVERSAL_LAUNCHER.bat → User choice → Appropriate path
 ```
 
 #### **WORKING DIRECTORIES:**
+
 ```
 ✅ output/                             # Excel output directory
 ✅ logs/                               # Processing logs directory
 ```
 
 #### **OPTIONAL (for development):**
+
 ```
 🔹 tests/                              # Test suite (if needed)
    ├── __init__.py
@@ -424,6 +431,7 @@ UNIVERSAL_LAUNCHER.bat → User choice → Appropriate path
 ## 🚨 **CRITICAL DEPENDENCIES TO EXCLUDE FROM CLEAN CORE:**
 
 ### **❌ NOT NEEDED FOR CLEAN CORE:**
+
 ```
 ❌ backups/                            # Historical versions
 ❌ dist_executable/                    # Distribution packages
@@ -446,10 +454,13 @@ UNIVERSAL_LAUNCHER.bat → User choice → Appropriate path
 ## 📊 **CLEAN CORE SUMMARY:**
 
 ### **TOTAL ESSENTIAL FILES:** ~45 files
+
 ### **TOTAL DIRECTORIES:** ~10 directories
+
 ### **ESTIMATED SIZE:** <50MB (without logs/output)
 
 ### **🎯 CORE FUNCTIONAL COMPONENTS:**
+
 1. **Main Scraper** (`production_scraper.py`) ⭐
 2. **Validation System** (`excel_validator.py`) ⭐
 3. **Source Reader** (`src/excel/source_reader.py`) ⭐
