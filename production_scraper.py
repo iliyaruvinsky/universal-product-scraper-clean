@@ -85,8 +85,24 @@ def search_and_filter_product(driver, product_name):
         if dropdown_containers:
             print(f"✅ Found {len(dropdown_containers)} dropdown suggestions")
             # Look for suggestions with model ID in data-search-link
+            from src.hebrew.text_processor import HebrewTextProcessor
+            hebrew_processor = HebrewTextProcessor()
+            
             for container in dropdown_containers:
                 try:
+                    # First check if this is a valid HVAC suggestion
+                    suggestion_text = container.text.strip()
+                    
+                    # Skip phone/mobile products
+                    if hebrew_processor.contains_phone_keywords(suggestion_text):
+                        print(f"🚫 Skipping phone suggestion: {suggestion_text[:50]}...")
+                        continue
+                    
+                    # Only process HVAC products
+                    if not hebrew_processor.contains_hvac_keywords(suggestion_text):
+                        print(f"🚫 Skipping non-HVAC suggestion: {suggestion_text[:50]}...")
+                        continue
+                    
                     # Find the clickable div with data-search-link attribute
                     suggestion_div = container.find_element(By.CSS_SELECTOR, ".acSearch-row.acSearch-row-img[data-search-link*='modelid=']")
                     search_link = suggestion_div.get_attribute('data-search-link')
@@ -99,7 +115,7 @@ def search_and_filter_product(driver, product_name):
                             model_id = model_id_match.group(1)
                             # Construct direct model page URL
                             model_url = f"https://www.zap.co.il/model.aspx?modelid={model_id}"
-                            print(f"📍 Found model ID {model_id} in dropdown")
+                            print(f"✅ Found valid HVAC model ID {model_id} in dropdown")
                             print(f"📍 Navigating directly to: {model_url}")
                             
                             # Navigate directly to the model page
@@ -109,13 +125,31 @@ def search_and_filter_product(driver, product_name):
                 except:
                     continue
             
-            # Fallback: click the first suggestion if no model ID found
+            # Fallback: find valid HVAC suggestion if no model ID found
             try:
-                first_suggestion = dropdown_containers[0].find_element(By.CSS_SELECTOR, ".acSearch-row.acSearch-row-img")
-                print(f"📍 Clicking first dropdown suggestion")
-                first_suggestion.click()
-                time.sleep(5 if HEADLESS_MODE else 3)
-                return "success", driver.current_url
+                from src.hebrew.text_processor import HebrewTextProcessor
+                hebrew_processor = HebrewTextProcessor()
+                
+                for container in dropdown_containers:
+                    try:
+                        suggestion_text = container.text.strip()
+                        
+                        # Check if this is a phone/mobile product
+                        if hebrew_processor.contains_phone_keywords(suggestion_text):
+                            print(f"🚫 REJECTED phone dropdown: {suggestion_text[:50]}...")
+                            continue
+                        
+                        # Check if this is an HVAC product
+                        if hebrew_processor.contains_hvac_keywords(suggestion_text):
+                            suggestion_div = container.find_element(By.CSS_SELECTOR, ".acSearch-row.acSearch-row-img")
+                            print(f"✅ Clicking valid HVAC suggestion: {suggestion_text[:50]}...")
+                            suggestion_div.click()
+                            time.sleep(5 if HEADLESS_MODE else 3)
+                            return "success", driver.current_url
+                    except:
+                        continue
+                
+                print(f"❌ No valid HVAC suggestions found in dropdown")
             except:
                 pass
         
@@ -129,12 +163,42 @@ def search_and_filter_product(driver, product_name):
             product_links = driver.find_elements(By.CSS_SELECTOR, "a[href*='model.aspx?modelid=']")
             if product_links:
                 print(f"✅ Found {len(product_links)} product links in results")
-                first_link = product_links[0]
-                model_url = first_link.get_attribute('href')
-                print(f"📍 Navigating to: {model_url}")
-                driver.get(model_url)
-                time.sleep(5 if HEADLESS_MODE else 3)
-                return "success", model_url
+                
+                # CRITICAL FIX: Filter out non-HVAC products
+                from src.hebrew.text_processor import HebrewTextProcessor
+                hebrew_processor = HebrewTextProcessor()
+                
+                valid_link = None
+                for link in product_links:
+                    try:
+                        link_text = link.text.strip()
+                        parent_text = link.find_element(By.XPATH, "..").text.strip()
+                        combined_text = f"{link_text} {parent_text}"
+                        
+                        # Check if this is a phone/mobile product
+                        if hebrew_processor.contains_phone_keywords(combined_text):
+                            print(f"🚫 REJECTED phone product: {link_text[:50]}...")
+                            continue
+                        
+                        # Check if this is an HVAC product
+                        if hebrew_processor.contains_hvac_keywords(combined_text):
+                            print(f"✅ ACCEPTED HVAC product: {link_text[:50]}...")
+                            valid_link = link
+                            break
+                        else:
+                            print(f"🚫 REJECTED non-HVAC product: {link_text[:50]}...")
+                    except:
+                        continue
+                
+                if valid_link:
+                    model_url = valid_link.get_attribute('href')
+                    print(f"📍 Navigating to valid HVAC product: {model_url}")
+                    driver.get(model_url)
+                    time.sleep(5 if HEADLESS_MODE else 3)
+                    return "success", model_url
+                else:
+                    print(f"❌ No valid HVAC products found among {len(product_links)} results")
+                    return "no_valid_products", driver.current_url
             else:
                 print(f"❌ No product links found")
                 return "no_products", driver.current_url

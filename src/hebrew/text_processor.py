@@ -6,7 +6,7 @@ Handles Hebrew text normalization, encoding, and matching.
 
 import re
 import unicodedata
-from typing import Optional
+from typing import Optional, List
 from urllib.parse import quote
 
 from src.utils.logger import get_logger
@@ -238,4 +238,96 @@ class HebrewTextProcessor:
         # Clean up extra spaces
         english_text = ' '.join(english_text.split())
         
-        return english_text.strip() 
+        return english_text.strip()
+    
+    def generate_search_variants(self, product_name: str) -> List[str]:
+        """
+        Generate multiple search variants for Hebrew-containing products.
+        
+        Args:
+            product_name: Original product name
+            
+        Returns:
+            List of search variants to try
+        """
+        variants = []
+        
+        # Original term (always try first)
+        variants.append(product_name)
+        
+        # Extract Hebrew and English parts
+        hebrew_parts = self.extract_hebrew_words(product_name)
+        english_parts = self.extract_english_words(product_name)
+        
+        # English-only search (for Hebrew encoding issues)
+        if english_parts:
+            english_only = " ".join(english_parts)
+            if english_only != product_name:
+                variants.append(english_only)
+        
+        # Manufacturer + English terms only (if manufacturer is present)
+        if english_parts and len(english_parts) >= 2:
+            # Assume first word is manufacturer
+            manufacturer_english = f"{english_parts[0]} {' '.join(english_parts[1:])}"
+            if manufacturer_english not in variants:
+                variants.append(manufacturer_english)
+        
+        return variants
+    
+    def extract_hebrew_words(self, text: str) -> List[str]:
+        """Extract Hebrew words from mixed text."""
+        if not text:
+            return []
+        
+        hebrew_words = []
+        words = text.split()
+        
+        for word in words:
+            if any(self.hebrew_range[0] <= ord(char) <= self.hebrew_range[1] for char in word):
+                hebrew_words.append(word)
+        
+        return hebrew_words
+    
+    def extract_english_words(self, text: str) -> List[str]:
+        """Extract English/Latin words from mixed text."""
+        if not text:
+            return []
+        
+        english_words = []
+        words = text.split()
+        
+        for word in words:
+            # Keep words that are primarily ASCII
+            if re.match(r'^[a-zA-Z0-9\-]+$', word):
+                english_words.append(word)
+        
+        return english_words
+    
+    def contains_hvac_keywords(self, text: str) -> bool:
+        """Check if text contains HVAC/air conditioner related keywords."""
+        if not text:
+            return False
+        
+        text_lower = text.lower()
+        hvac_terms = [
+            'מזגן', 'inv', 'inverter', 'btu', 'btuh', 'כ"ס', 
+            'עילי', 'רצפתי', 'מיני מרכזי', 'airconditioner',
+            'air conditioner', 'aircon', 'hvac', 'cooling',
+            'electra', 'tornado', 'tadiran', 'carrier'
+        ]
+        
+        return any(term in text_lower for term in hvac_terms)
+    
+    def contains_phone_keywords(self, text: str) -> bool:
+        """Check if text contains phone/mobile device related keywords."""
+        if not text:
+            return False
+        
+        text_lower = text.lower()
+        phone_terms = [
+            'samsung', 'galaxy', 'טלפון', 'סלולרי', 'smartphone',
+            'mobile', 'phone', 'gb ram', 'storage', 'android',
+            'ios', 'iphone', 'pixel', 'huawei', 'xiaomi'
+        ]
+        
+        return any(term in text_lower for term in phone_terms) 

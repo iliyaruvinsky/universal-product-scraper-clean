@@ -793,7 +793,7 @@ class NaturalLanguageCLI:
                                 input_product=product,
                                 vendor_offers=[],
                                 status="no_results",
-                                error_message="Search failed"
+                                error_message="No vendors found (product may not exist or only non-HVAC results were found)"
                             )
                     finally:
                         driver.quit()

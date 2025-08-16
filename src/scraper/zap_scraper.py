@@ -411,6 +411,10 @@ class ZapScraper:
             
             vendor_offers = []
             
+            # Initialize Hebrew text processor for advanced filtering
+            from src.hebrew.text_processor import HebrewTextProcessor
+            hebrew_processor = HebrewTextProcessor()
+            
             # Target search results using DISCOVERED WORKING SELECTORS
             # From debug analysis: SearchResults container with ModelRow items
             search_result_selectors = [
@@ -439,18 +443,18 @@ class ZapScraper:
                                 elem_text = elem.text.strip()
                                 elem_html = elem.get_attribute('outerHTML').lower()
                                 
-                                # Skip if this looks like an advertisement (more specific check)
-                                # Only skip if explicitly marked as ad AND doesn't contain elco
+                                # LAYER 2: Advanced Category and Product Filtering
+                                
+                                # Skip explicit advertisements  
                                 is_explicit_ad = ('מודעה' in elem_text or 
                                                 'sponsored' in elem_html or 
                                                 'banner' in elem_html)
-                                contains_target_product = 'elco' in elem_text.lower()
                                 
-                                if is_explicit_ad and not contains_target_product:
-                                    logger.debug("Skipping advertisement element (explicit ad without target product)")
+                                if is_explicit_ad:
+                                    logger.debug("Skipping advertisement element")
                                     continue
                                 
-                                # Skip if text is too short or duplicate
+                                # Skip if text is too short
                                 if len(elem_text) < 20:
                                     logger.debug("Skipping element with too short text")
                                     continue
@@ -460,11 +464,26 @@ class ZapScraper:
                                     logger.debug("Skipping duplicate element")
                                     continue
                                 
-                                # Must contain ELCO and price to be a valid result
-                                if 'elco' not in elem_text.lower():
-                                    logger.debug("Skipping element without ELCO")
+                                # CRITICAL: Filter out phone/mobile products
+                                if hebrew_processor.contains_phone_keywords(elem_text):
+                                    logger.warning(f"🚫 FILTERED OUT phone product: {elem_text[:50]}...")
                                     continue
                                 
+                                # CRITICAL: Must contain HVAC keywords to be valid
+                                if not hebrew_processor.contains_hvac_keywords(elem_text):
+                                    logger.debug(f"Skipping non-HVAC element: {elem_text[:30]}...")
+                                    continue
+                                
+                                # CRITICAL: Manufacturer consistency check
+                                expected_manufacturer = self._extract_manufacturer_from_product(product.name)
+                                result_manufacturer = self._extract_manufacturer_from_text(elem_text)
+                                
+                                if expected_manufacturer and result_manufacturer:
+                                    if expected_manufacturer.lower() != result_manufacturer.lower():
+                                        logger.warning(f"🚫 MANUFACTURER MISMATCH: Expected '{expected_manufacturer}', found '{result_manufacturer}' in '{elem_text[:30]}...'")
+                                        continue
+                                
+                                # Must contain price to be a valid result
                                 if '₪' not in elem_text:
                                     logger.debug("Skipping element without price")
                                     continue
@@ -610,6 +629,92 @@ class ZapScraper:
         except Exception as e:
             logger.error(f"Error extracting vendors from search results: {e}")
             return []
+    
+    def _extract_manufacturer_from_product(self, product_name: str) -> str:
+        """Extract manufacturer from product name (first word typically)."""
+        if not product_name:
+            return ""
+        
+        words = product_name.strip().split()
+        if words:
+            # First word is typically the manufacturer
+            manufacturer = words[0].upper()
+            # Known HVAC manufacturers (should match text extraction method)
+            known_manufacturers = ['ELECTRA', 'TORNADO', 'TADIRAN', 'CARRIER', 'MIDEA', 'GREE', 'HAIER']
+            if manufacturer in known_manufacturers:
+                return manufacturer
+            
+            # Check variations
+            manufacturer_variations = {
+                'ELEC': 'ELECTRA',
+                'TORN': 'TORNADO', 
+                'TADI': 'TADIRAN'
+            }
+            
+            for variation, full_name in manufacturer_variations.items():
+                if variation in manufacturer:
+                    return full_name
+        
+        return ""
+    
+    def _extract_manufacturer_from_text(self, text: str) -> str:
+        """Extract manufacturer from result text."""
+        if not text:
+            return ""
+        
+        text_upper = text.upper()
+        # Known HVAC manufacturers (expanded for better detection)
+        known_manufacturers = ['ELECTRA', 'TORNADO', 'TADIRAN', 'CARRIER', 'MIDEA', 'GREE', 'HAIER']
+        
+        # Priority order - check most specific first
+        for manufacturer in known_manufacturers:
+            if manufacturer in text_upper:
+                return manufacturer
+        
+        # Secondary check for common variations
+        manufacturer_variations = {
+            'ELEC': 'ELECTRA',
+            'TORN': 'TORNADO', 
+            'TADI': 'TADIRAN'
+        }
+        
+        for variation, full_name in manufacturer_variations.items():
+            if variation in text_upper:
+                return full_name
+        
+        return ""
+    
+    def _assess_product_validity(self, product_name: str) -> float:
+        """
+        Assess if a product name appears to be valid based on structure and content.
+        
+        Returns:
+            Confidence score 0.0-1.0 (higher = more likely to be valid product)
+        """
+        if not product_name:
+            return 0.0
+        
+        score = 0.0
+        
+        # Check if it has manufacturer (first word from known list)
+        words = product_name.strip().split()
+        if words:
+            manufacturer = words[0].upper()
+            known_manufacturers = ['ELECTRA', 'TORNADO', 'TADIRAN', 'CARRIER']
+            if manufacturer in known_manufacturers:
+                score += 0.4
+        
+        # Check if it has model number (contains digits)
+        if re.search(r'\d+', product_name):
+            score += 0.3
+        
+        # Check if it has HVAC-related terms
+        from src.hebrew.text_processor import HebrewTextProcessor
+        hebrew_processor = HebrewTextProcessor()
+        if hebrew_processor.contains_hvac_keywords(product_name):
+            score += 0.3
+        
+        return min(score, 1.0)
 
     def _scrape_original_method(self, product: ProductInput) -> ProductScrapingResult:
         """Original scraping method as fallback."""
@@ -3753,24 +3858,58 @@ class ZapScraper:
         logger.info(f"🔍 SMART SEARCH: {product.name}")
         
         try:
-            # Navigate to search page
-            search_url = f"https://www.zap.co.il/models.aspx?sog=e-airconditioner&keyword={product.name.replace(' ', '%20')}"
-            logger.info(f"Smart search URL: {search_url}")
-            self.driver.get(search_url)
+            # LAYER 3: Enhanced search with Hebrew preprocessing
+            from src.hebrew.text_processor import HebrewTextProcessor
+            hebrew_processor = HebrewTextProcessor()
             
-            # Wait for results
-            self._wait_for_page_ready()
+            # Generate search variants for Hebrew-containing products
+            search_variants = hebrew_processor.generate_search_variants(product.name)
+            logger.info(f"Generated {len(search_variants)} search variants: {search_variants}")
             
-            # Detect product variants
-            variants = self._detect_product_variants(product.name)
+            variants = []
+            for variant_term in search_variants:
+                logger.info(f"🔍 Trying search variant: '{variant_term}'")
+                
+                # Navigate to search page with current variant
+                search_url = f"https://www.zap.co.il/models.aspx?sog=e-airconditioner&keyword={variant_term.replace(' ', '%20')}"
+                logger.info(f"Smart search URL: {search_url}")
+                self.driver.get(search_url)
+                
+                # Wait for results
+                self._wait_for_page_ready()
+                
+                # Detect product variants for this search term
+                variant_results = self._detect_product_variants(variant_term)
+                if variant_results:
+                    logger.info(f"✅ Found {len(variant_results)} variants with search term: '{variant_term}'")
+                    variants.extend(variant_results)
+                    break  # Use first successful variant
+                else:
+                    logger.info(f"❌ No variants found with search term: '{variant_term}'")
             
+            # LAYER 3: Early zero-results detection with assessment
             if not variants:
-                logger.warning(f"❌ No variants found for: {product.name}")
+                logger.warning(f"❌ No variants found for any search variant")
+                
+                # Assess if this might be a valid but unavailable product
+                confidence = self._assess_product_validity(product.name)
+                
+                if confidence > 0.7:
+                    logger.info(f"🔍 High confidence ({confidence:.1f}) - valid product but not available")
+                    status = "not_found"
+                    error_message = f"Product '{product.name}' appears valid but not available on ZAP"
+                else:
+                    logger.info(f"🔍 Low confidence ({confidence:.1f}) - possibly invalid product")
+                    status = "invalid_product"  
+                    error_message = f"Product '{product.name}' may not exist or have invalid format"
+                
                 return ProductScrapingResult(
                     input_product=product,
                     vendor_offers=[],
-                    status="no_results"
+                    status=status,
+                    error_message=error_message
                 )
+            
             
             logger.info(f"🔍 Found {len(variants)} product variants")
             
@@ -4677,7 +4816,23 @@ class ZapScraper:
                         for element in elements:
                             option_text = element.text.strip()
                             logger.debug(f"   Element text: '{option_text}' (visible: {element.is_displayed()})")
-                            if option_text and len(option_text) > 3 and element.is_displayed():  # Valid option
+                            
+                            if option_text and len(option_text) > 3 and element.is_displayed():
+                                # CRITICAL FIX: STRICT HVAC-ONLY FILTERING FOR ALL DROPDOWN OPTIONS
+                                from src.hebrew.text_processor import HebrewTextProcessor
+                                hebrew_processor = HebrewTextProcessor()
+                                
+                                # REJECT phone/mobile products immediately
+                                if hebrew_processor.contains_phone_keywords(option_text):
+                                    logger.warning(f"🚫 REJECTED phone product in dropdown: '{option_text[:50]}...'")
+                                    continue
+                                
+                                # ONLY accept HVAC-related suggestions
+                                if not hebrew_processor.contains_hvac_keywords(option_text):
+                                    logger.debug(f"🚫 REJECTED non-HVAC dropdown option: '{option_text[:30]}...'")
+                                    continue
+                                
+                                logger.info(f"✅ ACCEPTED HVAC dropdown option: '{option_text[:50]}...'")
                                 all_options.append({
                                     'element': element,
                                     'text': option_text,
@@ -4708,10 +4863,26 @@ class ZapScraper:
                             try:
                                 if element.is_displayed():
                                     element_text = element.text.strip()
+                                    
+                                    # CRITICAL FIX: STRICT HVAC-ONLY FILTERING
+                                    # Initialize Hebrew text processor for filtering
+                                    from src.hebrew.text_processor import HebrewTextProcessor
+                                    hebrew_processor = HebrewTextProcessor()
+                                    
+                                    # REJECT phone/mobile products immediately
+                                    if hebrew_processor.contains_phone_keywords(element_text):
+                                        logger.warning(f"🚫 REJECTED phone product in dropdown: '{element_text[:50]}...'")
+                                        continue
+                                    
+                                    # ONLY accept HVAC-related suggestions
+                                    if not hebrew_processor.contains_hvac_keywords(element_text):
+                                        logger.debug(f"🚫 REJECTED non-HVAC suggestion: '{element_text[:30]}...'")
+                                        continue
+                                    
                                     # Check if element contains any of our target components
                                     if (element_text and len(element_text) > 5 and 
                                         any(component.lower() in element_text.lower() for component in target_components)):
-                                        logger.info(f"📋 Found potential option: '{element_text[:100]}...'")
+                                        logger.info(f"📋 Found valid HVAC option: '{element_text[:100]}...'")
                                         all_options.append({
                                             'element': element,
                                             'text': element_text,
