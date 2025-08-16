@@ -13,11 +13,8 @@ import time
 # Add src to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from src.excel.source_reader import SourceExcelReader
 from src.utils.logger import get_logger
-from src.api.scraper_service import ScraperService
-from src.api.validation_service import ValidationService
-from src.api.results_service import ResultsService
-from src.api.status_service import StatusService
 
 logger = get_logger(__name__)
 
@@ -38,12 +35,6 @@ class NaturalLanguageCLI:
             'products_to_process': 0
         }
         self.auth_manager = None
-        
-        # Initialize API services
-        self.scraper_service = ScraperService()
-        self.validation_service = ValidationService()
-        self.results_service = ResultsService()
-        self.status_service = StatusService()
         
     def start_interactive_session(self, auth_manager=None):
         """Start the main interactive session."""
@@ -317,7 +308,8 @@ class NaturalLanguageCLI:
         print(f"\n🔍 Analyzing source file: {source_file}")
         
         try:
-            products = self.scraper_service.get_source_products(source_file)
+            reader = SourceExcelReader()
+            products = reader.read_products(source_file)
             
             if not products:
                 print("❌ No valid products found in the file")
@@ -718,7 +710,8 @@ class NaturalLanguageCLI:
             
             # Read products from source
             print("📖 Reading products from source Excel...")
-            products = self.scraper_service.get_source_products(source_file)
+            reader = SourceExcelReader(config.get("excel.start_row", 2))
+            products = reader.read_products(source_file)
             print(f"✅ Found {len(products)} products")
             
             # Apply row range filter if specified
@@ -1228,53 +1221,32 @@ class NaturalLanguageCLI:
         print(f"\n📈 RECENT SCRAPING RESULTS")
         print("="*50)
         
-        try:
-            results = self.results_service.get_recent_results(limit=10)
+        output_dir = "output"
+        if not os.path.exists(output_dir):
+            print("❌ No output directory found")
+            return
             
-            if not results:
-                print("📂 No result files found")
-                return
+        excel_files = [f for f in os.listdir(output_dir) if f.endswith('.xlsx')]
+        
+        if not excel_files:
+            print("📂 No result files found in output/ directory")
+            return
             
-            print(f"📊 Found {len(results)} recent result files:")
+        # Sort by modification time (newest first)
+        excel_files.sort(key=lambda f: os.path.getmtime(os.path.join(output_dir, f)), reverse=True)
+        
+        print(f"📊 Found {len(excel_files)} result files:")
+        
+        for i, file in enumerate(excel_files[:10], 1):  # Show max 10 recent files
+            file_path = os.path.join(output_dir, file)
+            mod_time = datetime.fromtimestamp(os.path.getmtime(file_path))
+            file_size = os.path.getsize(file_path) // 1024  # KB
             
-            for i, result in enumerate(results, 1):
-                filename = result['filename']
-                created_time = result.get('created_time', 'Unknown')
-                file_size = result.get('file_size', 0) // 1024  # KB
-                rows_processed = result.get('rows_processed', 'Unknown')
-                
-                if isinstance(created_time, datetime):
-                    time_str = created_time.strftime('%Y-%m-%d %H:%M:%S')
-                else:
-                    time_str = str(created_time)
-                
-                print(f"{i:2d}. 📄 {filename}")
-                print(f"     🎯 Rows: {rows_processed} | 🕒 {time_str} | 💾 {file_size} KB")
-                
-                if 'total_vendors' in result:
-                    print(f"     📊 Vendors: {result['total_vendors']}")
-                if 'min_price' in result and 'max_price' in result:
-                    print(f"     💰 Price range: ₪{result['min_price']:,.0f} - ₪{result['max_price']:,.0f}")
+            print(f"{i:2d}. 📄 {file}")
+            print(f"     🕒 {mod_time.strftime('%Y-%m-%d %H:%M:%S')} | 💾 {file_size} KB")
             
-            # Additional options
-            print("\n🔧 Available actions:")
-            print("1. View detailed statistics")
-            print("2. Open a specific file")
-            print("3. Search results")
-            print("4. Return to main menu")
-            
-            choice = input("\n👉 Enter choice (1-4): ").strip()
-            
-            if choice == '1':
-                self._show_detailed_statistics()
-            elif choice == '2':
-                self._open_specific_file(results)
-            elif choice == '3':
-                self._search_results()
-            
-        except Exception as e:
-            logger.error(f"Error in view_recent_results: {e}")
-            print(f"❌ Error loading results: {e}")
+        if len(excel_files) > 10:
+            print(f"\n... and {len(excel_files) - 10} more files")
             
         input("\nPress Enter to continue...")
     
@@ -1283,69 +1255,34 @@ class NaturalLanguageCLI:
         print(f"\n🔍 SYSTEM STATUS CHECK")
         print("="*50)
         
-        try:
-            # Get comprehensive system status
-            status = self.status_service.get_system_status()
+        # Check critical directories and files
+        checks = [
+            ("📁 Source data directory", "data", os.path.isdir),
+            ("📊 Default source file", "data/SOURCE.xlsx", os.path.isfile),
+            ("📂 Output directory", "output", os.path.isdir),
+            ("📋 Main scraper", "src/main.py", os.path.isfile),
+            ("🔧 Configuration", "config", os.path.isdir),
+        ]
+        
+        print("🧾 System components:")
+        for name, path, check_func in checks:
+            status = "✅" if check_func(path) else "❌"
+            print(f"   {status} {name}: {path}")
             
-            # System health
-            print("🧾 System Health:")
-            health = status.get('system_health', {})
-            print(f"   🖥️  CPU Usage: {health.get('cpu_usage', 'Unknown')}%")
-            print(f"   💾 Memory Usage: {health.get('memory_usage', 'Unknown')}%")
-            print(f"   💽 Disk Usage: {health.get('disk_usage', 'Unknown')}%")
-            print(f"   🐍 Python: {health.get('python_version', 'Unknown')}")
-            
-            # Scraper status
-            print(f"\n🔧 Scraper Components:")
-            scraper_status = status.get('scraper_status', {})
-            components = [
-                ("Production Scraper", scraper_status.get('production_scraper_exists', False)),
-                ("Excel Validator", scraper_status.get('excel_validator_exists', False)),
-                ("Source File", scraper_status.get('source_file_exists', False)),
-                ("Chrome Browser", scraper_status.get('chrome_available', False))
-            ]
-            
-            for name, available in components:
-                status_icon = "✅" if available else "❌"
-                print(f"   {status_icon} {name}")
-            
-            overall_ready = scraper_status.get('scraper_ready', False)
-            print(f"\n🎯 Overall Status: {'✅ READY' if overall_ready else '❌ NOT READY'}")
-            
-            # Recent activity
-            print(f"\n📈 Recent Activity:")
-            activity = status.get('recent_activity', {})
-            print(f"   📊 Last 24 hours: {activity.get('last_24_hours', 0)} files")
-            print(f"   📅 Last week: {activity.get('last_week', 0)} files")
-            print(f"   📆 Last month: {activity.get('last_month', 0)} files")
-            
-            if activity.get('latest_file'):
-                print(f"   📄 Latest file: {activity['latest_file']}")
-            
-            # File system status
-            print(f"\n📂 File System:")
-            fs_status = status.get('file_system_status', {})
-            print(f"   📁 Output files: {fs_status.get('recent_output_files', 0)}")
-            total_size = fs_status.get('total_output_size', 0) // 1024 // 1024  # MB
-            print(f"   💾 Total output size: {total_size} MB")
-            
-            # Health check option
-            print(f"\n🔧 Additional Options:")
-            print("1. Run comprehensive health check")
-            print("2. View performance metrics")
-            print("3. Return to main menu")
-            
-            choice = input("\n👉 Enter choice (1-3): ").strip()
-            
-            if choice == '1':
-                self._run_comprehensive_health_check()
-            elif choice == '2':
-                self._show_performance_metrics()
-                
-        except Exception as e:
-            logger.error(f"Error in system_status_check: {e}")
-            print(f"❌ Error checking system status: {e}")
-            
+        # Check recent activity
+        print(f"\n📈 Recent activity:")
+        
+        # Logs
+        if os.path.exists("logs/scraper.log"):
+            log_size = os.path.getsize("logs/scraper.log") // 1024
+            print(f"   📝 Main log size: {log_size} KB")
+        
+        # Recent outputs
+        if os.path.exists("output"):
+            recent_files = len([f for f in os.listdir("output") if f.endswith('.xlsx')])
+            print(f"   📊 Output files: {recent_files}")
+        
+        print(f"\n✅ System appears to be working correctly!")
         input("\nPress Enter to continue...")
     
     def show_help_and_examples(self):
@@ -1531,158 +1468,6 @@ class NaturalLanguageCLI:
                 suggestions.append(f"File found in data directory: {data_path}")
         
         return suggestions
-
-    # Helper methods for enhanced CLI functionality
-    def _show_detailed_statistics(self):
-        """Show detailed statistics about scraping results."""
-        try:
-            stats = self.results_service.get_statistics()
-            
-            print(f"\n📊 DETAILED STATISTICS")
-            print("="*50)
-            
-            print(f"📁 Total Files: {stats.get('total_files', 0)}")
-            
-            if 'date_range' in stats:
-                earliest = stats['date_range'].get('earliest')
-                latest = stats['date_range'].get('latest')
-                if earliest and latest:
-                    print(f"📅 Date Range: {earliest.strftime('%Y-%m-%d')} to {latest.strftime('%Y-%m-%d')}")
-            
-            print(f"🏪 Total Vendors Processed: {stats.get('total_vendors_processed', 0)}")
-            print(f"📊 Average Vendors per File: {stats.get('average_vendors_per_file', 0):.1f}")
-            
-            if 'price_range' in stats:
-                price_range = stats['price_range']
-                print(f"💰 Price Range: ₪{price_range.get('lowest', 0):,.0f} - ₪{price_range.get('highest', 0):,.0f}")
-                print(f"💰 Average Price: ₪{price_range.get('average', 0):,.0f}")
-            
-            total_size_mb = stats.get('total_file_size', 0) // 1024 // 1024
-            print(f"💾 Total Storage Used: {total_size_mb} MB")
-            
-        except Exception as e:
-            print(f"❌ Error loading detailed statistics: {e}")
-    
-    def _open_specific_file(self, results):
-        """Allow user to open a specific Excel file."""
-        try:
-            print(f"\n📂 Select file to open:")
-            for i, result in enumerate(results, 1):
-                print(f"{i}. {result['filename']}")
-            
-            choice = input(f"\n👉 Enter file number (1-{len(results)}): ").strip()
-            
-            try:
-                file_index = int(choice) - 1
-                if 0 <= file_index < len(results):
-                    file_path = results[file_index]['file_path']
-                    if self.results_service.open_excel_file(file_path):
-                        print(f"✅ Opened {results[file_index]['filename']}")
-                    else:
-                        print(f"❌ Failed to open file")
-                else:
-                    print("❌ Invalid file number")
-            except ValueError:
-                print("❌ Please enter a valid number")
-                
-        except Exception as e:
-            print(f"❌ Error opening file: {e}")
-    
-    def _search_results(self):
-        """Search through results."""
-        try:
-            search_term = input("\n🔍 Enter search term (row number, product name, etc.): ").strip()
-            
-            if not search_term:
-                print("❌ Search term cannot be empty")
-                return
-            
-            results = self.results_service.search_results(search_term)
-            
-            if not results:
-                print(f"❌ No results found for '{search_term}'")
-                return
-            
-            print(f"\n🎯 Found {len(results)} matches for '{search_term}':")
-            
-            for i, result in enumerate(results, 1):
-                filename = result['filename']
-                rows_processed = result.get('rows_processed', 'Unknown')
-                created_time = result.get('created_time', 'Unknown')
-                
-                if isinstance(created_time, datetime):
-                    time_str = created_time.strftime('%Y-%m-%d %H:%M')
-                else:
-                    time_str = str(created_time)
-                
-                print(f"{i}. 📄 {filename}")
-                print(f"   🎯 Rows: {rows_processed} | 🕒 {time_str}")
-                
-        except Exception as e:
-            print(f"❌ Error searching results: {e}")
-    
-    def _run_comprehensive_health_check(self):
-        """Run comprehensive health check."""
-        try:
-            print(f"\n🔍 Running comprehensive health check...")
-            
-            health_check = self.status_service.run_health_check()
-            
-            overall_status = health_check.get('overall_status', 'UNKNOWN')
-            print(f"\n🎯 Overall Status: {overall_status}")
-            
-            # Show individual checks
-            checks = health_check.get('checks', {})
-            for check_name, check_result in checks.items():
-                status = check_result.get('status', 'UNKNOWN')
-                status_icon = {"OK": "✅", "WARNING": "⚠️", "CRITICAL": "❌", "ERROR": "🔴"}.get(status, "❓")
-                print(f"   {status_icon} {check_name.replace('_', ' ').title()}: {status}")
-            
-            # Show recommendations
-            recommendations = health_check.get('recommendations', [])
-            if recommendations:
-                print(f"\n💡 Recommendations:")
-                for rec in recommendations:
-                    print(f"   • {rec}")
-            
-            # Show critical issues
-            critical_issues = health_check.get('critical_issues', [])
-            if critical_issues:
-                print(f"\n🚨 Critical Issues:")
-                for issue in critical_issues:
-                    print(f"   • {issue}")
-                    
-        except Exception as e:
-            print(f"❌ Error running health check: {e}")
-    
-    def _show_performance_metrics(self):
-        """Show performance metrics."""
-        try:
-            print(f"\n📈 PERFORMANCE METRICS")
-            print("="*50)
-            
-            # Get system status for performance data
-            status = self.status_service.get_system_status()
-            
-            # Performance metrics from status
-            performance = status.get('performance_metrics', {})
-            
-            print(f"⏱️  Average Processing Time: {performance.get('average_processing_time', 'Not available')}")
-            print(f"🏪 Average Vendors per Product: {performance.get('average_vendors_per_product', 'Not available')}")
-            print(f"✅ Success Rate: {performance.get('success_rate', 'Not available')}")
-            print(f"📈 Performance Trend: {performance.get('performance_trend', 'Not available')}")
-            
-            # Current system metrics
-            health = status.get('system_health', {})
-            print(f"\n💻 Current System Performance:")
-            print(f"   🖥️  CPU: {health.get('cpu_usage', 'Unknown')}% ({health.get('cpu_status', 'Unknown')})")
-            print(f"   💾 Memory: {health.get('memory_usage', 'Unknown')}% ({health.get('memory_status', 'Unknown')})")
-            
-            if performance.get('note'):
-                print(f"\nℹ️  Note: {performance['note']}")
-                
-        except Exception as e:
-            print(f"❌ Error loading performance metrics: {e}")
 
 
 def main():

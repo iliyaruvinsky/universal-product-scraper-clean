@@ -12,7 +12,11 @@
       "Bash(dir:*)",
       "Bash(git add:*)",
       "Bash(mkdir:*)",
-      "Bash(mv:*)"
+      "Bash(mv:*)",
+      "Bash(copy:*)",
+      "Bash(cp:*)",
+      "Bash(del test_api_services.py test_cli_api_integration.py)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []
