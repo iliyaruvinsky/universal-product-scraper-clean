@@ -1,10 +1,10 @@
 # 🚨 UNIVERSAL PRODUCT SCRAPER - CLEAN CORE LLM HANDOVER
 
-**Last Updated**: August 16, 2025 - CLI ARCHITECTURE & SUMMARY ENHANCEMENT COMPLETE  
-**Context Status**: PRODUCTION-READY CLEAN CORE + ENHANCED CLI  
-**Context Type**: MINIMAL FOCUSED CONTEXT (99% reduction + enhanced CLI architecture)  
+**Last Updated**: August 16, 2025 - SUB-OPTION 1B ENHANCED VALIDATION IMPLEMENTED  
+**Context Status**: PRODUCTION-READY CLEAN CORE + ENHANCED CLI + VALIDATION FIX  
+**Context Type**: MINIMAL FOCUSED CONTEXT (99% reduction + enhanced validation)  
 **Location**: EXTRACT/Universal-Product-Scraper-Clean/  
-**Session Status**: READY FOR NEW CHAT - CLI ENHANCED & VALIDATED  
+**Session Status**: READY FOR NEW CHAT - VALIDATION ENHANCED & DOCUMENTED  
 
 ---
 
@@ -25,7 +25,30 @@
 
 ### **🔧 RECENT CRITICAL WORK COMPLETED:**
 
-#### **1. SCORING SYSTEM ALIGNMENT (August 15, 2025):**
+#### **1. SUB-OPTION 1B ENHANCED VALIDATION FIX (August 16, 2025):**
+
+**PROBLEM FOUND**: Missing SUB-OPTION 1B fallback implementation causing secondary filtering mystery:
+
+- SUB-OPTION 1A (hyphenated format) failed → No SUB-OPTION 1B attempted
+- Search results contained wrong manufacturer products (Electra instead of Tornado)
+- No scoring validation prevented accepting incorrect matches
+- Lines 117 & 144 incorrectly accepted Electra products for Tornado searches
+
+**SOLUTION IMPLEMENTED**: Complete SUB-OPTION 1B + Enhanced Validation:
+
+```
+✅ SUB-OPTION 1B IMPLEMENTATION:
+├─ Clear search box and enter space-separated format
+├─ Press Enter for traditional search  
+├─ Extract product links with HVAC filtering
+├─ Apply ProductScoringEngine validation (10%/40%/50% weights)
+├─ Accept ONLY products scoring ≥8.0/10.0 (80% threshold)
+└─ Navigate to BEST scoring product (prevents wrong manufacturer)
+```
+
+**RESULT**: Lines 117 & 144 now correctly reject wrong manufacturer matches, maintaining high quality standards.
+
+#### **2. SCORING SYSTEM ALIGNMENT (August 15, 2025):**
 
 **PROBLEM FOUND**: OPTION_1_DETAILED_FLOW.md had mathematical contradictions:
 

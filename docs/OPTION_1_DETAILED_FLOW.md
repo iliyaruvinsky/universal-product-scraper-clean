@@ -6,13 +6,13 @@
 
 ### **📊 KEY CHARACTERISTICS:**
 
-- **Success Rate**: ~60-80% (improved with breakthrough hyphenation method and nomenclature intelligence)
-- **Primary Filter**: Model Number Gate (exact 100% match or immediate rejection) 
+- **Success Rate**: ~60-80% (improved with dual breakthrough methods and enhanced validation)
+- **Primary Filter**: Model Number Gate (exact 100% match or immediate rejection)
 - **When Model Matches**: ~85-95% success rate (high confidence on correct product page)
-- **When Model Doesn't Match**: 0% success (clean fallback to Option 2)
-- **Total Phases**: 11 distinct phases with 47 decision points
-- **Failure Points**: 8 different ways to fail → all lead to Option 2
-- **Recent Enhancement**: Integrated with centralized scoring module (August 2025)
+- **Breakthrough Paths**: TWO efficiency paths skip traditional phases (SUB-OPTION 1A + 1B Enhanced)
+- **Total Phases**: 12 distinct phases with 50+ decision points
+- **Failure Points**: 10 different ways to fail → all lead to Option 2
+- **Recent Enhancement**: SUB-OPTION 1B enhanced validation + ProductScoringEngine integration (August 2025)
 
 ---
 
@@ -67,96 +67,27 @@ Option 1 now uses TWO sub-options with HYPHENATED-FIRST priority:
 ├─ SUB-OPTION 1A: Hyphen format with SMART DROPDOWN SELECTION (ALWAYS TRY FIRST)
 └─ SUB-OPTION 1B: Space format with traditional search (fallback if 1A fails)
 
-🎯 CRITICAL REASONING: Recent tests on Lines 126-127 confirmed that:
-- HYPHENATED approach achieves direct model pages (model.aspx?modelid=X) with >90% success when dropdown available
-- SPACED approach provides reliable fallback reaching search results with 100% coverage
-- Combined dual approach yields 25+ vendors per product with 12.5 average vendor count
+ 
+🎯 SUB-OPTION 1B - ENHANCED TRADITIONAL SEARCH (August 2025):
+Step 1: Clear search box and enter SPACE-SEPARATED format
+Step 2: Press Enter key (element.send_keys(Keys.ENTER))
+Step 3: Wait 15 seconds maximum for search results
+Step 4: Apply ENHANCED VALIDATION with ProductScoringEngine
 
-🎯 SUB-OPTION 1A - HYPHEN FORMAT (TRY FIRST):
-CRITICAL SUCCESS PATTERN (PRESERVED FROM WORKING BREAKTHROUGH):
-
-Step 1: CLICK Search Field First
-Action: Click search field to trigger empty dropdown system
-Target: #acSearch-input element
-Purpose: Activates ZAP's intelligent dropdown system
-Verification: Empty dropdown may appear (not required)
-
-Step 2: PASTE/Type Hyphenated Name
-Action: Clear existing content + enter hyphenated product name
-Input Example: "Tornado-WD-INV-PRO-SQ-45-1PH"
-Method: product_name.replace(" ", "-")
-Purpose: Triggers ZAP's product autocomplete system
-
-Step 3: WAIT FOR DROPDOWN SUGGESTIONS
-Action: Wait 3-5 seconds for dropdown suggestions to populate
-Expected: 1-5 dropdown suggestions appear
-Selectors: .acSearch-row-container (ZAP's proven CSS class)
-Critical: Do NOT press Enter - wait for suggestions!
-
-Step 4: SMART DROPDOWN SELECTION (BREAKTHROUGH LOGIC)
-🔑 CRITICAL SELECTION ALGORITHM:
-Priority 1: Hebrew product description with full details
-├─ Pattern: "מזגן [מיני מרכזי/עילי] [Manufacturer] [Model Details]"
-├─ Example: "מזגן מיני מרכזי Tornado WD Inv Pro SQ 45 1PH 4.0 כ"ס"
-├─ Recognition: Contains Hebrew product category + full model details
-└─ Result: DIRECT navigation to model.aspx?modelid=XXXX
-
-Priority 2: Active dropdown suggestion (if no Hebrew description)
-├─ Selector: .acSearch-row-container.active
-├─ Fallback: First .acSearch-row-container if no active
-└─ Result: May navigate to search results or model page
-
-Step 5: CLICK SELECTED SUGGESTION
-Action: Click the highest priority suggestion found
-Result: Navigate directly to model page OR filtered search results
-Success Indicator: URL contains "model.aspx?modelid=" (direct to model page)
-
-🎯 SUCCESS CRITERIA FOR SUB-OPTION 1A:
-✅ OPTIMAL: Direct navigation to model.aspx?modelid=XXXX with vendor data
-✅ ACCEPTABLE: Navigation to filtered results with Model IDs
-❌ FAILURE: No dropdown suggestions OR navigation to generic search
-
-SUB-OPTION 1B - SPACE FORMAT (FALLBACK):
-Action: Clear existing content + type original product name  
-Input Example: "Tornado WD INV PRO SQ 45 1PH"
-Method: Traditional Enter-key search (original approach)
-Rationale: Broader search when hyphen method fails
-
-🚨 EXECUTION SEQUENCE (CORRECTED):
-1. Try SUB-OPTION 1A with SMART DROPDOWN SELECTION
-2. Check result type:
-   ├─ If direct model page (model.aspx?modelid=X) → Continue to Phase 6 (skip Phases 2-5)
-   ├─ If filtered results with Model IDs → Continue to Phase 2 normally  
-   └─ If no Model IDs found → Try SUB-OPTION 1B
-3. If SUB-OPTION 1B finds Model IDs → Continue to Phase 2
-4. If BOTH fail → SKIP TO OPTION 2
-
-🎯 BREAKTHROUGH INSIGHT:
-SUB-OPTION 1A can SKIP Phases 2-5 when dropdown leads directly to model page!
-This represents a ~60% efficiency improvement over traditional flow.
-```
-
-**1.4 Submit Search (CORRECTED FOR EACH SUB-OPTION)**
-
-```text
-🎯 SUB-OPTION 1A - DROPDOWN SELECTION (NO ENTER KEY):
-Method: Click dropdown suggestion (completed in Step 1.3.5)
-Navigation: Handled by ZAP's dropdown click event
-Wait: 5 seconds maximum for navigation to complete
-
-Expected Navigation Results for SUB-OPTION 1A:
-├─ OPTIMAL: https://www.zap.co.il/model.aspx?modelid=1245927 (direct to model page)
-├─ GOOD: https://www.zap.co.il/models.aspx?sog=e-airconditioner&keyword=tornado-wd-inv-pro-sq-45-1ph
-└─ FALLBACK: https://www.zap.co.il/search.aspx?keyword=tornado-wd-inv-pro-sq-45-1ph
-
-🎯 SUB-OPTION 1B - TRADITIONAL SEARCH:
-Method 1: Press Enter key (element.send_keys(Keys.ENTER))
-Method 2: Click search button (if Enter fails)
-Wait: 15 seconds maximum for search results
+🔧 ENHANCED VALIDATION PROCESS (NEW):
+├─ Extract all product links: a[href*='model.aspx?modelid=']
+├─ Filter out phone/mobile products using HebrewTextProcessor
+├─ Apply HVAC keyword validation for remaining products
+├─ Score each HVAC product using ProductScoringEngine (10%/40%/50% weights)
+├─ Accept ONLY products scoring ≥8.0/10.0 (80% threshold)
+└─ Navigate to BEST scoring product (prevents wrong manufacturer matches)
 
 Expected Search URL Patterns for SUB-OPTION 1B:
 ├─ https://www.zap.co.il/search?keyword=tornado%20wd%20inv%20pro%20sq%2045%201ph
 └─ https://www.zap.co.il/models.aspx?sog=e-airconditioner&keyword=tornado%20wd%20inv%20pro%20sq%2045%201ph
+
+🚨 CRITICAL: Enhanced validation prevents accepting products from wrong manufacturers
+(e.g., Tornado search will NOT accept Electra products even if HVAC-compatible)
 
 🚨 CRITICAL NAVIGATION DECISION POINT:
 After SUB-OPTION 1A dropdown click:
@@ -258,15 +189,20 @@ ELSE IF SUB-OPTION 1A → Search results with Model IDs:
    → Status: Traditional flow success
 
 ELSE IF SUB-OPTION 1A failed:
-   → Try SUB-OPTION 1B
-   → IF SUB-OPTION 1B success → Phase 2
+   → Try SUB-OPTION 1B with Enhanced Validation
+   → IF SUB-OPTION 1B finds valid match (≥8.0/10.0) → Direct navigation to model page (SKIP Phase 2-5)
+   → IF SUB-OPTION 1B no valid matches → SKIP TO OPTION 2
    → IF BOTH fail → SKIP TO OPTION 2
 
-🎯 LOGGING ENHANCEMENT:
+🎯 LOGGING ENHANCEMENT (Updated August 2025):
 ├─ "SUB-OPTION 1A: BREAKTHROUGH - Direct model ID {id} via dropdown"
 ├─ "SUB-OPTION 1A: Traditional search results - Found {count} Model IDs"  
-├─ "SUB-OPTION 1A failed, trying SUB-OPTION 1B (spaces)"
-├─ "SUB-OPTION 1B: Found {count} Model IDs"
+├─ "SUB-OPTION 1A failed, trying SUB-OPTION 1B (space format)..."
+├─ "SUB-OPTION 1B: Entered space format: {product_name}"
+├─ "Evaluating HVAC match: {product_name}... Score: {score}/10"
+├─ "ACCEPTED best match (score {score}/10): {product_name}"
+├─ "Best match scored {score}/10 (below 8.0 threshold): {product_name}"
+├─ "No valid HVAC products found among {count} results"
 ├─ "Both sub-options failed - fallback to Option 2"
 └─ "Efficiency gain: {phases_skipped} phases skipped via breakthrough method"
 ```
@@ -357,6 +293,7 @@ Note: No navigation yet - still on search results page!
 ### **CRITICAL IMPORTANCE**
 
 These are the **DUAL PRIMARY FILTERS** that determine Option 1 success/failure. Both gates must pass:
+
 1. **Model Number Gate**: Only exact model number matches proceed
 2. **Product Type Gate**: INV/INVERTER presence when target has it
 
@@ -792,12 +729,15 @@ METRICS: Navigation time, page size, element count
 
 ### **LOCATION**: Now on specific model page (different from search results!)
 
-### **🚨 BREAKTHROUGH ENTRY POINT**: 
+### **🚨 BREAKTHROUGH ENTRY POINT**
+
 **This phase can be reached via TWO paths:**
+
 1. **Traditional Flow**: Phases 1→2→3→4→5→6 (search results → model selection → navigation)
 2. **BREAKTHROUGH Flow**: Phase 1 SUB-OPTION 1A direct dropdown → Phase 6 (60% faster)
 
 **When entering via breakthrough method:**
+
 - Model ID already extracted from URL in Phase 1.5
 - Skip all intermediate phases (2-5)
 - Begin directly with product listings extraction
@@ -1335,7 +1275,7 @@ Column Structure (17 columns):
 ├─ F: Price Difference (-₪2,850)
 ├─ G: Percentage Difference (-46.7%)
 ├─ H: Button Text ("לפרטים נוספים")
-├─ I: Vendor URL ("https://kor-light.co.il/...")
+├─ I: Vendor URL ("<https://kor-light.co.il/>...")
 ├─ J: Vendor Type ("external")
 ├─ K: Processing Status ("success")
 ├─ L: Price Rank (1-18)
@@ -1346,6 +1286,7 @@ Column Structure (17 columns):
 └─ Q: Timestamp ("2025-08-09 19:00:00")
 
 Result: 18 detail rows with comprehensive vendor data
+
 ```
 
 **Sheet 2: "סיכום" (Summary)**  
@@ -1583,18 +1524,19 @@ Success Criteria:
 
 ### **KEY DECISION POINTS:**
 
-1. **Search Results Found** (Phase 1)
-2. **Model Number Gate Passed** (Phase 3) - CRITICAL
-3. **Product Type Gate Passed** (Phase 3) - CRITICAL
-4. **Component Score ≥ 8.0** (Phase 4) - 80% minimum threshold
-5. **Model Page Loads** (Phase 5)
-6. **Listings Extracted** (Phase 6)
-7. **Dual Gate Validation Passed** (Phase 7) - CRITICAL
-8. **Vendor Buttons Found** (Phase 8)
-9. **Vendor Processing ≥70%** (Phase 9)
-10. **Excel Validation Passed** (Phase 12) - MANDATORY
+1. **Search Results Found** (Phase 1 SUB-OPTION 1A/1B)
+2. **Enhanced Validation Score ≥ 8.0** (Phase 1 SUB-OPTION 1B) - NEW CRITICAL GATE
+3. **Model Number Gate Passed** (Phase 3 Traditional) - CRITICAL
+4. **Product Type Gate Passed** (Phase 3 Traditional) - CRITICAL
+5. **Component Score ≥ 8.0** (Phase 4 Traditional) - 80% minimum threshold
+6. **Model Page Loads** (Phase 5 or Direct)
+7. **Listings Extracted** (Phase 6)
+8. **Dual Gate Validation Passed** (Phase 7) - CRITICAL
+9. **Vendor Buttons Found** (Phase 8)
+10. **Vendor Processing ≥70%** (Phase 9)
+11. **Excel Validation Passed** (Phase 12) - MANDATORY
 
-**Result**: Only when ALL 10 decision points succeed does Option 1 complete successfully. The dual critical gates (Model Number + Product Type) ensure precise product matching. Otherwise, clean fallback to Option 2 ensures no product is lost.
+**Result**: Only when ALL 11 decision points succeed does Option 1 complete successfully. The enhanced validation gate (SUB-OPTION 1B) and dual critical gates (Model Number + Product Type) ensure precise product matching. Otherwise, clean fallback to Option 2 ensures no product is lost.
 
 ---
 
