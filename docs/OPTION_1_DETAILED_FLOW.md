@@ -68,14 +68,21 @@ Option 1 now uses TWO sub-options with HYPHENATED-FIRST priority:
 └─ SUB-OPTION 1B: Space format with traditional search (fallback if 1A fails)
 
  
-🎯 SUB-OPTION 1B - ENHANCED TRADITIONAL SEARCH (August 2025):
+🎯 SUB-OPTION 1A - HYPHEN FORMAT WITH SMART DROPDOWN SELECTION (ALWAYS TRY FIRST):
+Step 1: Clear search box and enter HYPHENATED format (e.g., "Tornado SLIM-SQ-PRO-INV X 25 1 PH")
+Step 2: Trigger dropdown suggestions by typing
+Step 3: Analyze dropdown suggestions for HVAC keywords using HebrewTextProcessor
+Step 4: If valid HVAC suggestion found → Click suggestion → Navigate to model.aspx?modelid=
+Step 5: If no valid HVAC suggestions → Fall back to SUB-OPTION 1B
+
+🎯 SUB-OPTION 1B - SPACE FORMAT TRADITIONAL SEARCH (FALLBACK IF 1A FAILS):
 Step 1: Clear search box and enter SPACE-SEPARATED format
 Step 2: Press Enter key (element.send_keys(Keys.ENTER))
-Step 3: Wait 15 seconds maximum for search results
+Step 3: Wait for search results page (models.aspx)
 Step 4: Apply ENHANCED VALIDATION with ProductScoringEngine
 
-🔧 ENHANCED VALIDATION PROCESS (NEW):
-├─ Extract all product links: a[href*='model.aspx?modelid=']
+🔧 ENHANCED VALIDATION PROCESS (SUB-OPTION 1B):
+├─ Extract all product links: a[href*='/fs.aspx'] (NEW PRIORITY) + a[href*='model.aspx?modelid='] (FALLBACK)
 ├─ Filter out phone/mobile products using HebrewTextProcessor
 ├─ Apply HVAC keyword validation for remaining products
 ├─ Score each HVAC product using ProductScoringEngine (10%/40%/50% weights)

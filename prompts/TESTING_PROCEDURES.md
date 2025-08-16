@@ -10,7 +10,7 @@
 
 ### **1. MANDATORY: Production Entry Points Only**
 
-- **USE ONLY**: `python production_scraper.py --rows X` for ALL testing
+- **USE ONLY**: `python production_scraper.py X [Y Z] [--headless]` for ALL testing
 - **VALIDATE WITH**: `python excel_validator.py output/filename.xlsx` (MANDATORY post-scraping)
 - **NEVER**: Create new test scripts, use debug files, or modify working logic
 
@@ -60,10 +60,10 @@ python production_scraper.py 126
 python production_scraper.py 126 127
 
 # Headless mode (optional)
-python production_scraper.py --headless 126
+python production_scraper.py 126 --headless
 
 # Multiple rows with headless
-python production_scraper.py --headless 126 127
+python production_scraper.py 126 127 --headless
 ```
 
 #### **CRITICAL: Excel Row Number System**
@@ -308,6 +308,7 @@ python excel_validator.py output/Lines_126_Report_*.xlsx
 #### **Validation Process:**
 
 - **Load Excel**: Read all three worksheets
+- **Worksheet Validation**: MANDATORY check for all 3 worksheets (פירוט, סיכום, חריגים)
 - **Apply Gates**: Re-validate all vendor data with same criteria
 - **Score Verification**: Confirm 10%/40%/50% weights applied correctly
 - **Threshold Check**: Verify 8.0/10.0 threshold compliance
@@ -322,6 +323,7 @@ python excel_validator.py output/Lines_126_Report_*.xlsx
 **LOG INDICATORS:**
 
 - `"Excel validation started"`
+- `"All 3 required worksheets found: פירוט, סיכום, חריגים"`
 - `"Validation completed: X/Y vendors validated"`
 - `"Quality score: XX% vendors above threshold"`
 
@@ -464,6 +466,7 @@ python natural_cli.py
 - ✅ Present complete Excel file after every test
 - ✅ Apply updated scoring weights (10%/40%/50%)
 - ✅ Validate with excel_validator.py (mandatory)
+- ✅ **VERIFY all 3 worksheets exist: פירוט, סיכום, חריגים**
 - ✅ Ask "What would you like me to do next?"
 - ✅ **WAIT for actual scraper completion before proceeding to validation**
 - ✅ **VALIDATE only the exact Excel file from requested lines**

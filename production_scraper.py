@@ -168,11 +168,49 @@ def search_and_filter_product(driver, product_name):
         search_box.send_keys(Keys.ENTER)
         time.sleep(5 if HEADLESS_MODE else 3)
         
-        # Step 5: Look for product links in search results
+        # Step 5: Look for product links in search results - ENHANCED 2025 SELECTORS
         try:
-            product_links = driver.find_elements(By.CSS_SELECTOR, "a[href*='model.aspx?modelid=']")
+            # ENHANCED: Use correct selectors based on HTML analysis 
+            # Priority order: NEW selectors first (fs.aspx), legacy last
+            product_link_selectors = [
+                "a[href*='/fs.aspx']",             # NEW: Main product links from HTML analysis
+                "a[href*='fs.aspx']",              # NEW: Alternative fs links
+                ".ModelTitle",                     # NEW: Product title links
+                ".ModelPic",                       # NEW: Product image links
+                ".noModelRow.ModelRow a",          # NEW: Links in product containers
+                "a[href*='model.aspx?modelid=']",  # Legacy selector (last resort)
+            ]
+            
+            product_links = []
+            for selector in product_link_selectors:
+                try:
+                    links = driver.find_elements(By.CSS_SELECTOR, selector)
+                    if links:
+                        print(f"✅ Found {len(links)} links with selector: {selector}")
+                        # Filter out duplicate links and ads
+                        filtered_links = []
+                        for link in links:
+                            href = link.get_attribute('href') or ''
+                            text = link.text.strip()
+                            
+                            # Skip ad links
+                            if 'data-bid-id' in link.get_attribute('outerHTML') or 'מודעה' in text:
+                                continue
+                            
+                            # Skip duplicates
+                            if href not in [l.get_attribute('href') for l in filtered_links]:
+                                filtered_links.append(link)
+                        
+                        if filtered_links:
+                            print(f"✅ Using {len(filtered_links)} filtered links from: {selector}")
+                            product_links = filtered_links
+                            break  # Use first successful selector with valid links
+                except Exception as e:
+                    print(f"❌ Selector {selector} failed: {e}")
+                    continue
+            
             if product_links:
-                print(f"✅ Found {len(product_links)} product links in results")
+                print(f"✅ Found {len(product_links)} total product links in results")
                 
                 # ENHANCED VALIDATION: Use scoring engine to find best match
                 from src.hebrew.text_processor import HebrewTextProcessor
@@ -188,8 +226,34 @@ def search_and_filter_product(driver, product_name):
                 
                 for link in product_links:
                     try:
+                        # ENHANCED: Extract text from different link types
                         link_text = link.text.strip()
-                        parent_text = link.find_element(By.XPATH, "..").text.strip()
+                        
+                        # NEW: For fs.aspx links, get text from nearby elements or data attributes
+                        if '/fs.aspx' in link.get_attribute('href'):
+                            # Try to get product name from aria-label or data attributes
+                            aria_label = link.get_attribute('aria-label')
+                            if aria_label:
+                                link_text = aria_label.strip()
+                            
+                            # Try to get product text from ModelRow container
+                            try:
+                                model_row = link.find_element(By.XPATH, "./ancestor::*[contains(@class, 'ModelRow')]")
+                                if model_row:
+                                    model_text = model_row.text.strip()
+                                    # Extract product name from model text (before price)
+                                    product_match = model_text.split('₪')[0].strip()
+                                    if len(product_match) > len(link_text):
+                                        link_text = product_match
+                            except:
+                                pass
+                        
+                        parent_text = ""
+                        try:
+                            parent_text = link.find_element(By.XPATH, "..").text.strip()
+                        except:
+                            pass
+                        
                         combined_text = f"{link_text} {parent_text}"
                         
                         # Check if this is a phone/mobile product
@@ -197,8 +261,13 @@ def search_and_filter_product(driver, product_name):
                             print(f"🚫 REJECTED phone product: {link_text[:50]}...")
                             continue
                         
-                        # Check if this is an HVAC product
-                        if not hebrew_processor.contains_hvac_keywords(combined_text):
+                        # Check if this is an HVAC product or contains Tornado
+                        is_hvac = (hebrew_processor.contains_hvac_keywords(combined_text) or
+                                  'tornado' in combined_text.lower() or
+                                  'TORNADO' in combined_text or
+                                  'טורנדו' in combined_text)
+                        
+                        if not is_hvac:
                             print(f"🚫 REJECTED non-HVAC product: {link_text[:50]}...")
                             continue
                         
@@ -222,12 +291,10 @@ def search_and_filter_product(driver, product_name):
                 
                 # Accept best match only if above threshold (8.0/10 as per CLAUDE.md)
                 if best_match and best_score >= 8.0:
-                    model_url = best_match.get_attribute('href')
                     print(f"✅ ACCEPTED best match (score {best_score:.1f}/10): {best_match_text[:50]}...")
-                    print(f"📍 Navigating to: {model_url}")
-                    driver.get(model_url)
-                    time.sleep(5 if HEADLESS_MODE else 3)
-                    return "success", model_url
+                    print(f"📍 STAYING ON LISTINGS PAGE to extract vendors from current page")
+                    # DON'T navigate away - extract vendors from current listings page
+                    return "success", driver.current_url
                 elif best_match:
                     print(f"❌ Best match scored {best_score:.1f}/10 (below 8.0 threshold): {best_match_text[:50]}...")
                     print(f"❌ No products met the validation threshold")
@@ -352,47 +419,110 @@ def extract_vendors_unified(driver, zap_product_name="Unknown Product"):
     vendors = []
     
     try:
-        # UNIFIED: Same selectors for both modes (HTML structures are identical)
-        vendor_rows = driver.find_elements(By.CSS_SELECTOR, ".compare-item-row.product-item")
-        print(f"✅ Found {len(vendor_rows)} vendor rows using unified selector")
+        # ENHANCED 2025: Use correct selectors based on page type
+        current_url = driver.current_url
+        
+        if "models.aspx" in current_url:
+            # On listings page - use ModelRow selectors (same as product detection)
+            vendor_rows = driver.find_elements(By.CSS_SELECTOR, ".noModelRow.ModelRow")
+            print(f"✅ Found {len(vendor_rows)} vendor listings on models.aspx page")
+        else:
+            # On comparison page - use original selectors
+            vendor_rows = driver.find_elements(By.CSS_SELECTOR, ".compare-item-row.product-item")
+            print(f"✅ Found {len(vendor_rows)} vendor rows using comparison page selectors")
         
         if len(vendor_rows) == 0:
-            # Simple fallback for both modes
-            vendor_rows = driver.find_elements(By.CSS_SELECTOR, ".compare-item-row")
-            print(f"✅ Fallback found {len(vendor_rows)} rows")
+            # Enhanced fallback for both page types
+            fallback_selectors = [
+                ".compare-item-row",           # Original fallback
+                ".ModelRow",                   # Listings page fallback
+                ".noModelRow",                 # Alternative listings fallback
+            ]
+            
+            for selector in fallback_selectors:
+                vendor_rows = driver.find_elements(By.CSS_SELECTOR, selector)
+                if vendor_rows:
+                    print(f"✅ Fallback found {len(vendor_rows)} rows with: {selector}")
+                    break
         
         for i, row in enumerate(vendor_rows, 1):
             try:
                 print(f"\n🔍 Processing vendor {i}:")
                 
-                # UNIFIED: Extract vendor name (same logic for both modes)
+                # ENHANCED: Extract vendor name based on page type
                 vendor_name = f"Vendor {i}"
-                try:
-                    logo_img = row.find_element(By.CSS_SELECTOR, ".compare-item-image.store a img[title]")
-                    vendor_title = logo_img.get_attribute('title')
-                    if vendor_title and vendor_title.lower() not in ['bullet', 'icon']:
-                        vendor_name = vendor_title
-                except:
-                    try:
-                        all_imgs = row.find_elements(By.CSS_SELECTOR, "img[title]")
-                        for img in all_imgs:
-                            title = img.get_attribute('title')
-                            if title and title.lower() not in ['bullet', 'icon', ''] and len(title) > 2:
-                                vendor_name = title
-                                break
-                    except:
-                        pass
                 
-                # UNIFIED: Extract vendor URL (same logic for both modes)
+                if "models.aspx" in current_url:
+                    # Extract vendor from listings page (models.aspx)
+                    try:
+                        # Look for vendor name in store name section
+                        store_link = row.find_element(By.CSS_SELECTOR, "a[data-site-name]")
+                        vendor_name = store_link.get_attribute('data-site-name')
+                        print(f"   📍 Found vendor via data-site-name: {vendor_name}")
+                    except:
+                        try:
+                            # Alternative: look for vendor in text content
+                            store_text = row.find_element(By.CSS_SELECTOR, ".store-name, .short-store-name")
+                            vendor_text = store_text.text.strip()
+                            if 'ב-' in vendor_text:
+                                vendor_name = vendor_text.split('ב-')[1].strip()
+                                print(f"   📍 Found vendor via store text: {vendor_name}")
+                        except:
+                            try:
+                                # Fallback: extract from any link title
+                                store_link = row.find_element(By.CSS_SELECTOR, "a[title]")
+                                vendor_name = store_link.get_attribute('title')
+                                print(f"   📍 Found vendor via link title: {vendor_name}")
+                            except:
+                                print(f"   ⚠️ Could not extract vendor name from ModelRow")
+                else:
+                    # Original logic for comparison pages
+                    try:
+                        logo_img = row.find_element(By.CSS_SELECTOR, ".compare-item-image.store a img[title]")
+                        vendor_title = logo_img.get_attribute('title')
+                        if vendor_title and vendor_title.lower() not in ['bullet', 'icon']:
+                            vendor_name = vendor_title
+                    except:
+                        try:
+                            all_imgs = row.find_elements(By.CSS_SELECTOR, "img[title]")
+                            for img in all_imgs:
+                                title = img.get_attribute('title')
+                                if title and title.lower() not in ['bullet', 'icon', ''] and len(title) > 2:
+                                    vendor_name = title
+                                    break
+                        except:
+                            pass
+                
+                # ENHANCED: Extract vendor URL based on page type
                 vendor_url = ""
                 button_text = "לפרטים נוספים"
-                try:
-                    details_section = row.find_element(By.CSS_SELECTOR, ".compare-item-details")
-                    vendor_link = details_section.find_element(By.CSS_SELECTOR, "a[href*='/fs']")
-                    vendor_url = vendor_link.get_attribute('href')
-                    button_text = vendor_link.text.strip() or "לפרטים נוספים"
-                except:
-                    pass
+                
+                if "models.aspx" in current_url:
+                    # Extract URL from listings page (models.aspx)
+                    try:
+                        # Look for fs.aspx links in ModelRow
+                        vendor_link = row.find_element(By.CSS_SELECTOR, "a[href*='/fs.aspx']")
+                        vendor_url = vendor_link.get_attribute('href')
+                        button_text = vendor_link.text.strip() or "לפרטים נוספים"
+                        print(f"   🔗 Found vendor URL: {vendor_url[:100]}...")
+                    except:
+                        try:
+                            # Alternative: any fs link
+                            vendor_link = row.find_element(By.CSS_SELECTOR, "a[href*='fs.aspx']")
+                            vendor_url = vendor_link.get_attribute('href')
+                            button_text = vendor_link.text.strip() or "לפרטים נוספים"
+                            print(f"   🔗 Found vendor URL (alt): {vendor_url[:100]}...")
+                        except:
+                            print(f"   ⚠️ Could not extract vendor URL from ModelRow")
+                else:
+                    # Original logic for comparison pages
+                    try:
+                        details_section = row.find_element(By.CSS_SELECTOR, ".compare-item-details")
+                        vendor_link = details_section.find_element(By.CSS_SELECTOR, "a[href*='/fs']")
+                        vendor_url = vendor_link.get_attribute('href')
+                        button_text = vendor_link.text.strip() or "לפרטים נוספים"
+                    except:
+                        pass
                 
                 # UNIFIED: Extract individual vendor product name (visit vendor page)
                 individual_vendor_product_name = extract_individual_vendor_product_name(driver, vendor_url, vendor_name)
@@ -403,24 +533,70 @@ def extract_vendors_unified(driver, zap_product_name="Unknown Product"):
                     if zap_product_name and zap_product_name != "Unknown Product":
                         individual_vendor_product_name = f"{zap_product_name} (via {vendor_name})"
                 
-                # UNIFIED: Extract price using PROVEN working selector
+                # ENHANCED: Extract price based on page type
                 vendor_price = 0
-                try:
-                    # Use the WORKING selector proven by test: ".compare-item-details span"
-                    price_element = row.find_element(By.CSS_SELECTOR, ".compare-item-details span")
-                    price_text = price_element.text.strip()
-                    print(f"   🔍 Price text: '{price_text}'")
-                    
-                    if price_text:
-                        price_match = re.search(r'[\d,]+', price_text)
-                        if price_match:
-                            price_str = price_match.group().replace(',', '')
-                            if price_str.isdigit() and len(price_str) >= 3:
-                                vendor_price = int(price_str)
-                                print(f"   ✅ Price extracted: ₪{vendor_price}")
                 
-                except Exception as e:
-                    print(f"   ❌ Price extraction failed: {e}")
+                if "models.aspx" in current_url:
+                    # Extract price from listings page (models.aspx)
+                    try:
+                        # Look for price in ModelRow - multiple possible selectors
+                        price_selectors = [
+                            ".price-wrapper.product.final",  # Final price
+                            ".price-wrapper.product.total",  # Total price  
+                            "span[class*='price']",          # Any price span
+                            ".ModelDetails span",            # Price in details
+                        ]
+                        
+                        for selector in price_selectors:
+                            try:
+                                price_element = row.find_element(By.CSS_SELECTOR, selector)
+                                price_text = price_element.text.strip()
+                                print(f"   🔍 Price text from {selector}: '{price_text}'")
+                                
+                                if price_text and '₪' in price_text:
+                                    # Extract number from Hebrew price format
+                                    price_match = re.search(r'[\d,]+', price_text.replace('₪', ''))
+                                    if price_match:
+                                        price_str = price_match.group().replace(',', '')
+                                        if price_str.isdigit() and len(price_str) >= 3:
+                                            vendor_price = int(price_str)
+                                            print(f"   ✅ Price extracted from models.aspx: ₪{vendor_price}")
+                                            break
+                            except:
+                                continue
+                                
+                        if vendor_price == 0:
+                            # Fallback: search for any text containing ₪ and numbers
+                            row_text = row.text
+                            price_matches = re.findall(r'₪?\s*[\d,]+\s*₪?', row_text)
+                            for match in price_matches:
+                                numbers = re.findall(r'\d+', match.replace(',', ''))
+                                if numbers:
+                                    price_candidate = int(''.join(numbers))
+                                    if 100 <= price_candidate <= 50000:  # Reasonable price range
+                                        vendor_price = price_candidate
+                                        print(f"   ✅ Price extracted via text search: ₪{vendor_price}")
+                                        break
+                    except Exception as e:
+                        print(f"   ❌ Models.aspx price extraction failed: {e}")
+                else:
+                    # Original logic for comparison pages
+                    try:
+                        # Use the WORKING selector proven by test: ".compare-item-details span"
+                        price_element = row.find_element(By.CSS_SELECTOR, ".compare-item-details span")
+                        price_text = price_element.text.strip()
+                        print(f"   🔍 Price text: '{price_text}'")
+                        
+                        if price_text:
+                            price_match = re.search(r'[\d,]+', price_text)
+                            if price_match:
+                                price_str = price_match.group().replace(',', '')
+                                if price_str.isdigit() and len(price_str) >= 3:
+                                    vendor_price = int(price_str)
+                                    print(f"   ✅ Price extracted: ₪{vendor_price}")
+                    
+                    except Exception as e:
+                        print(f"   ❌ Price extraction failed: {e}")
                 
                 vendors.append({
                     'vendor_name': vendor_name,
@@ -813,9 +989,63 @@ def main():
         else:
             print(f"❌ Excel row {line_num} not found in source data (might be empty or header row)")
     
-    # Create Excel output
+    # Create Excel output using proper TargetExcelWriter
     if results:
-        excel_file = create_excel_file(results)
+        # Convert results to ProductScrapingResult format for TargetExcelWriter
+        from src.excel.target_writer import TargetExcelWriter
+        from src.models.data_models import ProductScrapingResult, ProductInput, VendorOffer
+        
+        # Convert results to proper format
+        formatted_results = []
+        for result in results:
+            # Create ProductInput - parse the product name into components
+            product_name_parts = result['product_name'].split(' ')
+            manufacturer = product_name_parts[0] if product_name_parts else ''
+            model_series = ' '.join(product_name_parts[1:-1]) if len(product_name_parts) > 2 else ''
+            model_number = product_name_parts[-1] if len(product_name_parts) > 1 else ''
+            
+            product_input = ProductInput(
+                row_number=result['line_number'],
+                manufacturer=manufacturer,
+                model_series=model_series,
+                model_number=model_number,
+                original_price=result['original_price']
+            )
+            
+            # Create VendorOffers
+            vendor_offers = []
+            for vendor in result['vendors']:
+                offer = VendorOffer(
+                    vendor_name=vendor['vendor_name'],
+                    product_name=vendor['vendor_product_name'],
+                    price=vendor['vendor_price'],
+                    url=vendor['vendor_url'],
+                    button_text=vendor.get('button_text', 'לפרטים נוספים')
+                )
+                vendor_offers.append(offer)
+            
+            # Create ProductScrapingResult
+            scraping_result = ProductScrapingResult(
+                input_product=product_input,
+                vendor_offers=vendor_offers,
+                status="success" if vendor_offers else "no_results",
+                error_message=None,
+                model_id=result.get('model_id', ''),
+                listing_count=len(vendor_offers),
+                constructed_url=result.get('model_url', '')
+            )
+            formatted_results.append(scraping_result)
+        
+        # Use proper Excel writer
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        excel_file = f"output/Lines_{'-'.join(str(r['line_number']) for r in results)}_Report_{timestamp}.xlsx"
+        
+        excel_writer = TargetExcelWriter()
+        success = excel_writer.write_results(formatted_results, excel_file)
+        
+        if not success:
+            print("❌ Failed to write Excel file")
+            excel_file = None
         
         print(f"\n🎯 FINAL SUMMARY:")
         print(f"   Lines processed: {len(results)}")

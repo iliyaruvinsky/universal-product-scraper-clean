@@ -415,12 +415,15 @@ class ZapScraper:
             from src.hebrew.text_processor import HebrewTextProcessor
             hebrew_processor = HebrewTextProcessor()
             
-            # Target search results using DISCOVERED WORKING SELECTORS
-            # From debug analysis: SearchResults container with ModelRow items
+            # ENHANCED 2025: Updated based on actual ZAP HTML structure analysis
+            # Target search results using DISCOVERED WORKING SELECTORS + NEW PATTERNS
             search_result_selectors = [
-                # PROVEN WORKING: Individual product items from debug
-                ".ModelRow",                           # Individual product containers - FOUND IN DEBUG
-                "#SearchResults .ModelRow",            # Products within search results container  
+                # CORRECT SELECTORS: Based on actual Tornado product HTML analysis
+                ".noModelRow.ModelRow",                # Main product containers (verified in HTML)
+                "#SearchResults .noModelRow.ModelRow", # Products within search results container  
+                ".ItemsFound .ModelRow",               # Products in results container
+                "#divSearchResults .ModelRow",         # Search results container
+                ".ModelRow",                           # Individual product containers - fallback
                 ".search-results .ModelRow",           # Alternative search results selector
                 # Fallback selectors
                 "#SearchResults div",                  # Any divs in search results
@@ -445,13 +448,17 @@ class ZapScraper:
                                 
                                 # LAYER 2: Advanced Category and Product Filtering
                                 
-                                # Skip explicit advertisements  
+                                # ENHANCED 2025: Skip explicit advertisements with improved ZAP detection
                                 is_explicit_ad = ('מודעה' in elem_text or 
                                                 'sponsored' in elem_html or 
-                                                'banner' in elem_html)
+                                                'banner' in elem_html or
+                                                'modelbid' in elem_html or   # NEW: ZAP bid elements
+                                                'bidscontainer' in elem_html or  # NEW: ZAP ads container
+                                                'adslogo' in elem_html or    # NEW: Ad logo class
+                                                'data-bid-id' in elem_html)  # NEW: Bid data attribute
                                 
                                 if is_explicit_ad:
-                                    logger.debug("Skipping advertisement element")
+                                    logger.debug(f"Skipping advertisement element: {elem_text[:50]}...")
                                     continue
                                 
                                 # Skip if text is too short
@@ -469,8 +476,11 @@ class ZapScraper:
                                     logger.warning(f"🚫 FILTERED OUT phone product: {elem_text[:50]}...")
                                     continue
                                 
-                                # CRITICAL: Must contain HVAC keywords to be valid
-                                if not hebrew_processor.contains_hvac_keywords(elem_text):
+                                # ENHANCED 2025: Must contain HVAC keywords OR Tornado to be valid
+                                if not (hebrew_processor.contains_hvac_keywords(elem_text) or 
+                                       'tornado' in elem_text.lower() or
+                                       'TORNADO' in elem_text or
+                                       'טורנדו' in elem_text):
                                     logger.debug(f"Skipping non-HVAC element: {elem_text[:30]}...")
                                     continue
                                 

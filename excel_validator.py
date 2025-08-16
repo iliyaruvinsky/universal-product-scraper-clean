@@ -307,6 +307,22 @@ class ExcelValidator:
             # Load the Excel file
             wb = openpyxl.load_workbook(excel_path, read_only=True)
             
+            # MANDATORY: Check for all 3 required worksheets
+            required_sheets = ['פירוט', 'סיכום', 'חריגים']
+            missing_sheets = []
+            
+            for sheet_name in required_sheets:
+                if sheet_name not in wb.sheetnames:
+                    missing_sheets.append(sheet_name)
+            
+            if missing_sheets:
+                print(f"❌ Error: Missing required worksheets: {', '.join(missing_sheets)}")
+                print(f"📋 Found worksheets: {', '.join(wb.sheetnames)}")
+                print(f"📋 Required worksheets: {', '.join(required_sheets)}")
+                return False
+            
+            print(f"✅ All 3 required worksheets found: {', '.join(required_sheets)}")
+            
             # Check if פירוט sheet exists
             if 'פירוט' not in wb.sheetnames:
                 print("❌ Error: 'פירוט' sheet not found in Excel file")

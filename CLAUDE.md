@@ -8,7 +8,7 @@ priority: HIGHEST
 **Project**: Fully purified clean core (48 essential files, 99% reduction + pollution removal)  
 **Status**: Ready for production testing - scoring fixed, OPTION_2 pollution removed  
 **Context**: Minimal focused context - pure implemented functionality only  
-**Updated**: August 15, 2025 - Scoring inconsistencies fixed, architecture purified  
+**Updated**: August 16, 2025 - Testing procedures protocol imperative added, TESTING_PROCEDURES.md alignment enforced  
 
 ---
 
@@ -64,6 +64,34 @@ priority: HIGHEST
 - Making assumptions about next steps
 
 **THIS RULE OVERRIDES ALL OTHER CONSIDERATIONS** ⚠️
+
+---
+
+### **2.1. MANDATORY: Testing Procedures Protocol Adherence**
+
+**Priority**: HIGHEST | **Always Apply**: true
+
+**ABSOLUTE REQUIREMENTS:**
+1. **ALWAYS FOLLOW** `prompts/TESTING_PROCEDURES.md` protocol during ANY testing cycle
+2. **NEVER DEVIATE** from established testing procedures without explicit user permission
+3. **STRICT PROTOCOL COMPLIANCE:**
+   - Use exact command syntax specified in TESTING_PROCEDURES.md
+   - Follow sequential execution protocol (no skipping phases)
+   - Mandatory Excel validation and presentation
+   - Proper timeout handling (minimum 10 minutes patience)
+
+**INHERITANCE RULE:**
+- **CONTINUOUSLY UPDATE** `prompts/TESTING_PROCEDURES.md` to maintain alignment with current processes
+- **ELIMINATE REDUNDANCIES** and keep procedures clean and contemporary
+- **ENSURE 100% ALIGNMENT** between documented procedures and actual implementation
+
+**❌ VIOLATIONS:**
+- Using ad-hoc testing approaches
+- Skipping mandatory validation steps
+- Deviating from established command syntax
+- Operating without documented procedures
+
+**TESTING_PROCEDURES.md IS THE AUTHORITATIVE TESTING GUIDE** ⚠️
 
 ---
 

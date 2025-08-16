@@ -150,10 +150,10 @@ production_scraper.py          # Main orchestrator
 └── excel_validator.py          # Mandatory validation
 ```
 
-### **Key Innovation - Breakthrough Hyphenation Method:**
+### **Key Innovation - Breakthrough Hyphenation Method (HYPHENATED-FIRST PRIORITY):**
 
-- **SUB-OPTION 1A**: Try hyphenated search first (60% efficiency gain)
-- **SUB-OPTION 1B**: Fallback to space-separated search
+- **SUB-OPTION 1A**: Hyphen format with SMART DROPDOWN SELECTION (ALWAYS TRY FIRST - 60% efficiency gain)
+- **SUB-OPTION 1B**: Space format with traditional search (FALLBACK IF 1A FAILS)
 - Direct model page navigation when dropdown works perfectly
 
 ---

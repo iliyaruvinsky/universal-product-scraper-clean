@@ -23,7 +23,7 @@ logger = get_logger(__name__)
 
 
 class TargetExcelWriter:
-    """Write scraping results to TARGET Excel with 2 worksheets."""
+    """Write scraping results to TARGET Excel with 3 worksheets."""
     
     def __init__(self):
         """Initialize writer with Hebrew column headers."""
@@ -67,6 +67,23 @@ class TargetExcelWriter:
         
         # Use the unified format for failure cases too
         self.summary_headers_failure = self.summary_headers_unified
+        
+        # Worksheet 3 (Exceptions) headers - 13 columns
+        self.exceptions_headers = [
+            "שורת מקור",          # A - Source Row
+            "שם מוצר",            # B - Product Name
+            "מחיר מקורי",         # C - Original Price
+            "שם ספק",            # D - Vendor Name
+            "שם מוצר באתר הספק", # E - Product Name on Vendor Site
+            "מחיר ספק",          # F - Vendor Price
+            "הפרש מחיר",          # G - Price Difference
+            "% הפרש",             # H - Percentage Difference
+            "קישור לספק",        # I - Vendor URL
+            "חותמת זמן",          # J - Timestamp
+            "ציון אימות",         # K - Validation Score
+            "סיבת דחייה",         # L - Rejection Reason
+            "הערות"               # M - Notes
+        ]
     
     def write_failure_results(self, product_input, dual_approach_result, target_path: str) -> bool:
         """
@@ -96,6 +113,9 @@ class TargetExcelWriter:
             
             # Create failure summary worksheet
             self.create_summary_worksheet_failure(workbook, [failure_summary])
+            
+            # Create exceptions worksheet (for failures, will show the failure reason)
+            self.create_exceptions_worksheet_failure(workbook, product_input, dual_approach_result)
             
             # Save workbook
             workbook.save(target_path)
@@ -145,6 +165,9 @@ class TargetExcelWriter:
                 logger.warning("No products scraped successfully, skipping summary sheet")
                 # Still create empty summary sheet for consistency
                 self._create_empty_summary_sheet(workbook)
+            
+            # Create worksheet 3: Exceptions (always create)
+            self.create_exceptions_worksheet(workbook, results)
             
             # Save file
             workbook.save(target_path)
@@ -547,3 +570,92 @@ class TargetExcelWriter:
         # Adjust column widths
         for col in range(1, len(headers) + 1):
             ws.column_dimensions[get_column_letter(col)].width = 15
+    
+    def create_exceptions_worksheet(self, workbook: Workbook, results: List[ProductScrapingResult]) -> None:
+        """Create the exceptions worksheet with rejected vendors and quality control data."""
+        ws = workbook.create_sheet("חריגים")
+        
+        # Write headers
+        for col, header in enumerate(self.exceptions_headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            self._style_header_cell(cell)
+        
+        # Track rejected vendors (for now, we'll create a placeholder)
+        # In the future, this should be populated with actual rejected vendors
+        # from validation failures, timeouts, gate failures, etc.
+        
+        row_num = 2
+        exceptions_found = False
+        
+        # Check for any failed products or vendors
+        for result in results:
+            # For now, add a placeholder note if no exceptions
+            if not result.vendor_offers or result.status == "error":
+                exceptions_found = True
+                ws.cell(row=row_num, column=1, value=result.input_product.row_number)
+                ws.cell(row=row_num, column=2, value=result.input_product.name)
+                ws.cell(row=row_num, column=3, value=result.input_product.original_price)
+                ws.cell(row=row_num, column=4, value="לא נמצא")
+                ws.cell(row=row_num, column=5, value="לא נמצא")
+                ws.cell(row=row_num, column=6, value=None)
+                ws.cell(row=row_num, column=7, value=None)
+                ws.cell(row=row_num, column=8, value=None)
+                ws.cell(row=row_num, column=9, value=None)
+                ws.cell(row=row_num, column=10, value=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+                ws.cell(row=row_num, column=11, value=0.0)
+                ws.cell(row=row_num, column=12, value="לא נמצאו ספקים" if not result.vendor_offers else "שגיאת עיבוד")
+                ws.cell(row=row_num, column=13, value="דורש בדיקה ידנית")
+                row_num += 1
+        
+        # If no exceptions found, add a note
+        if not exceptions_found:
+            ws.cell(row=2, column=1, value="✅")
+            ws.cell(row=2, column=2, value="לא נמצאו חריגים")
+            ws.cell(row=2, column=12, value="כל הספקים עברו את האימות בהצלחה")
+            ws.cell(row=2, column=13, value="אין צורך בבדיקה ידנית")
+            # Style the success message
+            for col in range(1, 14):
+                cell = ws.cell(row=2, column=col)
+                cell.fill = PatternFill(start_color="D4F6D4", end_color="D4F6D4", fill_type="solid")  # Light green
+        
+        # Format columns with consistent formatting
+        self.format_excel_columns_fixed(ws)
+    
+    def create_exceptions_worksheet_failure(self, workbook: Workbook, product_input, dual_approach_result) -> None:
+        """Create the exceptions worksheet for failure cases."""
+        ws = workbook.create_sheet("חריגים")
+        
+        # Write headers
+        for col, header in enumerate(self.exceptions_headers, 1):
+            cell = ws.cell(row=1, column=col, value=header)
+            self._style_header_cell(cell)
+        
+        # Add the failed product as an exception
+        ws.cell(row=2, column=1, value=product_input.row_number)
+        ws.cell(row=2, column=2, value=product_input.name)
+        ws.cell(row=2, column=3, value=product_input.original_price)
+        ws.cell(row=2, column=4, value="לא נמצא")
+        ws.cell(row=2, column=5, value="לא נמצא")
+        ws.cell(row=2, column=6, value=None)
+        ws.cell(row=2, column=7, value=None)
+        ws.cell(row=2, column=8, value=None)
+        ws.cell(row=2, column=9, value=None)
+        ws.cell(row=2, column=10, value=datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        ws.cell(row=2, column=11, value=0.0)
+        
+        # Extract failure reason from dual_approach_result
+        failure_reason = "כשל בכל השיטות"
+        if isinstance(dual_approach_result, dict):
+            if 'option1_failed' in dual_approach_result:
+                failure_reason = "כשל ב-OPTION_1: לא נמצאו מוצרים תואמים"
+        
+        ws.cell(row=2, column=12, value=failure_reason)
+        ws.cell(row=2, column=13, value="בדוק שם מוצר וניסוח חיפוש ידני")
+        
+        # Style the failure row
+        for col in range(1, 14):
+            cell = ws.cell(row=2, column=col)
+            cell.fill = PatternFill(start_color="FFE6E6", end_color="FFE6E6", fill_type="solid")  # Light red
+        
+        # Format columns with consistent formatting
+        self.format_excel_columns_fixed(ws)

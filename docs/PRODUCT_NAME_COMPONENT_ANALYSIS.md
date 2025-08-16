@@ -19,12 +19,14 @@ Product names often begin with configuration codes that indicate **installation 
 #### **Water-Source Heat Pump Configurations**
 
 **⚠️ CRITICAL: WD ≠ WV ≠ WH - These are DIFFERENT PRODUCTS!**
+
 - **WD**: Domestic Hot Water systems (up to 160°F, R134a refrigerant)
 - **WV**: Vertical installations (top discharge, closet-optimized)  
 - **WH**: Horizontal installations (side discharge)
 - **NEVER treat these as equivalent - they must match EXACTLY!**
 
 **WD Series - Wall-Mounted/Domestic Hot Water:**
+
 - **Application**: Domestic Hot Water (DHW) heat pumps or wall-mounted units
 - **Installation**: Wall-mounting capability for space-saving installations
 - **Specialty**: Optimized for higher temperature operations (up to 160°F)
@@ -32,6 +34,7 @@ Product names often begin with configuration codes that indicate **installation 
 - **Example**: "WD Inv Pro SQ 45 1PH"
 
 **WV Series - Vertical Configuration:**
+
 - **Application**: Vertical water-source heat pumps for closet installations
 - **Installation**: Upright orientation, top discharge airflow
 - **Space Optimization**: Designed for limited floor space scenarios
@@ -39,6 +42,7 @@ Product names often begin with configuration codes that indicate **installation 
 - **Example**: "WV Inv Pro SQ 45 1PH"
 
 **WH Series - Horizontal Configuration:**
+
 - **Application**: Horizontal water-source heat pumps
 - **Installation**: Standard horizontal mounting
 - **Airflow**: Side discharge configuration
@@ -47,6 +51,7 @@ Product names often begin with configuration codes that indicate **installation 
 #### **Other Common Configuration Prefixes**
 
 **Installation-Based Prefixes:**
+
 ```text
 ├─ WM: Wall-Mounted units
 ├─ FM: Floor-Mounted units  
@@ -56,6 +61,7 @@ Product names often begin with configuration codes that indicate **installation 
 ```
 
 **Application-Based Prefixes:**
+
 ```text
 ├─ DH: Domestic Hot Water systems
 ├─ SH: Space Heating specialized units
@@ -71,6 +77,7 @@ Product names often begin with configuration codes that indicate **installation 
 ### **Inverter Technology Indicators**
 
 **INV/INVERTER - Variable Speed Technology:**
+
 - **Function**: Variable-speed compressor capability
 - **Benefits**: Improved efficiency and precise temperature control
 - **Equivalence Rule**: "INV" ≡ "INVERTER" (100% equivalent)
@@ -80,12 +87,14 @@ Product names often begin with configuration codes that indicate **installation 
 ### **Product Line Designators**
 
 **PRO - Professional/Premium Series:**
+
 - **Market**: Commercial or high-end residential applications
 - **Features**: Enhanced durability, advanced controls, extended warranties
 - **Positioning**: Distinguished from basic/standard product lines
 - **Examples**: "Pro", "Professional", "Premium", "Elite"
 
 **Standard Series Indicators:**
+
 ```text
 ├─ STD: Standard series
 ├─ ECO: Economy/basic series
@@ -97,12 +106,14 @@ Product names often begin with configuration codes that indicate **installation 
 ### **Design and Form Factor Codes**
 
 **SQ - Square/Compact Design:**
+
 - **Form**: Square form factor or compact design
 - **Installation**: Space-efficient configurations
 - **Alternative**: May indicate "Sequence" in product lineup
 - **Variations**: "SQ", "Square", "Compact", "C"
 
 **Other Form Factors:**
+
 ```text
 ├─ SLIM: Thin profile units
 ├─ LOW: Low profile designs
@@ -118,12 +129,14 @@ Product names often begin with configuration codes that indicate **installation 
 ### **Capacity Ratings (BTU/HR)**
 
 **Numerical Capacity Indicators:**
+
 - **Format**: Direct BTU rating (e.g., "45" = 45,000 BTU/hr)
 - **Conversion**: Divide by 12,000 for tonnage (45 ÷ 12 = 3.75 tons)
 - **Common Ratings**: 18, 24, 30, 36, 45, 60, 90, 120, 140, 180
 - **Fractional Tons**: 1.5T, 2T, 2.5T, 3T, 4T, 5T, 7.5T, 10T, 12T, 15T
 
 **Alternative Capacity Formats:**
+
 ```text
 ├─ Direct Tonnage: "3TON", "5T", "7.5T"
 ├─ KW Rating: "15KW", "25KW" (electric heating)
@@ -134,11 +147,13 @@ Product names often begin with configuration codes that indicate **installation 
 ### **Electrical Power Supply Codes**
 
 **Phase Indicators:**
+
 - **1PH/1P**: Single-phase power supply (most common residential/light commercial)
 - **3PH/3P**: Three-phase power supply (heavy commercial/industrial)
 - **Voltage**: 115V, 208V, 230V, 460V, 575V
 
 **Power Supply Variations:**
+
 ```text
 ├─ Single Phase: "1PH", "1P", "SP", "Single"
 ├─ Three Phase: "3PH", "3P", "TP", "Three"  
@@ -153,12 +168,14 @@ Product names often begin with configuration codes that indicate **installation 
 ### **Brand Naming Conventions**
 
 **ELECTRA Series Patterns:**
+
 - **ELCO**: Established product line within ELECTRA
 - **SLIM**: Compact form factor designation
 - **A/B/C**: Series generation or feature levels
 - **Example**: "ELECTRA ELCO SLIM A SQ INV 40/1P"
 
 **Common Manufacturer Patterns:**
+
 ```text
 ├─ Series Letters: A, B, C (generations or feature levels)
 ├─ Roman Numerals: I, II, III, IV (version numbers)
@@ -174,6 +191,7 @@ Product names often begin with configuration codes that indicate **installation 
 ### **Flexible Model Matching Rules**
 
 **Configuration Prefix Equivalence:**
+
 ```text
 Core Model: "Inv Pro SQ 45 1PH"
 Equivalent Variations:
@@ -185,6 +203,7 @@ Equivalent Variations:
 ```
 
 **Technology Equivalence Rules:**
+
 ```text
 INV/INVERTER Equivalence:
 ├─ "INV" ≡ "INVERTER" ≡ "Inverter" ≡ "Variable"
@@ -194,6 +213,7 @@ INV/INVERTER Equivalence:
 ```
 
 **Capacity Format Flexibility:**
+
 ```text
 45K BTU Variations:
 ├─ "45" ≡ "45000" ≡ "45K" ≡ "3.75T" ≡ "3.75TON"
@@ -205,12 +225,14 @@ INV/INVERTER Equivalence:
 ### **Enhanced Search Construction**
 
 **Option 1 Model ID Search Enhancement:**
+
 - Include configuration prefix variations in search terms
 - Search for both "WD" and "WV" versions when either is specified
 - Broaden search to capture all configuration variations
 - Maintain core model specificity for validation
 
 **Search Enhancement:**
+
 - Construct URLs with flexible component matching
 - Include technology equivalence terms (INV + INVERTER)
 - Account for capacity format variations
@@ -219,6 +241,7 @@ INV/INVERTER Equivalence:
 ### **Improved Validation Scoring**
 
 **Component Scoring Adjustments:**
+
 ```text
 Configuration Prefixes (WD/WV/WH):
 ├─ Should not penalize manufacturer scores
@@ -271,6 +294,7 @@ Capacity Representations:
 ### **Pattern Matching Logic**
 
 **Preprocessing Pipeline:**
+
 ```text
 1. Extract configuration prefixes (WD/WV/WH)
 2. Normalize technology terms (INV → INVERTER)
@@ -280,6 +304,7 @@ Capacity Representations:
 ```
 
 **Matching Algorithm Enhancements:**
+
 ```text
 1. Apply equivalence rules before component comparison
 2. Use fuzzy matching for technology term variations
@@ -288,6 +313,7 @@ Capacity Representations:
 ```
 
 **Validation Improvements:**
+
 ```text
 1. Adjust scoring weights for recognized pattern types
 2. Implement progressive matching (exact → equivalent → fuzzy)
@@ -302,6 +328,7 @@ Capacity Representations:
 ### **OPTION_1 Component Scoring Weights:**
 
 **Updated Scoring Distribution:**
+
 ```text
 ├─ Manufacturer: 10% (0-1.0 points) - REDUCED from 15%
 ├─ Model Name: 40% (0-4.0 points) - DECREASED from 65% 
@@ -310,6 +337,7 @@ Capacity Representations:
 ```
 
 **Validation Threshold:**
+
 ```text
 ├─ Phase 4 Threshold: ≥8.0/10.0 (80% minimum) - INCREASED from 6.0/10.0
 ├─ Phase 7 Threshold: ≥8.0/10.0 (80% minimum) - Same as Phase 4
@@ -317,6 +345,7 @@ Capacity Representations:
 ```
 
 **Scoring Rationale:**
+
 ```text
 1. Model Number Priority: Exact model matching is most critical (50%)
 2. Model Name Balance: Reasonable weight for name similarity (40%) 
@@ -325,6 +354,7 @@ Capacity Representations:
 ```
 
 **Implementation References:**
+
 - `excel_validator.py` - Centralized scoring implementation
 - `docs/OPTION_1_DETAILED_FLOW.md` - Complete scoring methodology
 - `OPTION_1_PROCESS_FLOW_DIAGRAM.md` - Visual flow with weights
@@ -336,6 +366,7 @@ Capacity Representations:
 This document provides the foundation for ongoing product nomenclature intelligence. Additional product categories, manufacturer patterns, and technology terms can be systematically added to enhance scraper accuracy and coverage.
 
 **Future Expansion Areas:**
+
 - Commercial refrigeration nomenclature
 - Industrial HVAC system patterns  
 - Residential equipment naming conventions
@@ -343,6 +374,7 @@ This document provides the foundation for ongoing product nomenclature intellige
 - Emerging technology terminology
 
 **Continuous Learning Approach:**
+
 - Monitor scraper performance across product types
 - Identify new pattern recognition opportunities
 - Validate equivalence rules through testing

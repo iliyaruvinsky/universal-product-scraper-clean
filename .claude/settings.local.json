@@ -16,7 +16,16 @@
       "Bash(copy:*)",
       "Bash(cp:*)",
       "Bash(del test_api_services.py test_cli_api_integration.py)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(grep:*)",
+      "Bash(sed:*)",
+      "Bash(git push:*)",
+      "Bash(curl:*)",
+      "Bash(unzip:*)",
+      "Bash(START_PORTABLE.bat)",
+      "Bash(del \"C:\\Users\\USER\\Desktop\\universal-product-scraper-clean\\dist_portable\\Universal_Product_Scraper_v1.3_Portable\\test_import.py\")",
+      "WebFetch(domain:www.zap.co.il)",
+      "Bash(find:*)"
     ],
     "deny": [],
     "ask": []
