@@ -32,9 +32,13 @@ if sys.platform == "win32":
 sys.path.append(os.path.join(os.getcwd(), 'src'))
 from excel.source_reader import SourceExcelReader
 from validation.scoring_engine import ProductScoringEngine
+from utils.progress_tracker import ScrapingProgressTracker, SpinnerStatus
 
 # Global headless mode flag
 HEADLESS_MODE = False
+
+# Global progress tracker flag
+USE_PROGRESS_TRACKER = True
 
 def create_driver():
     """Create Chrome driver with unified configuration."""
@@ -411,10 +415,11 @@ def extract_individual_vendor_product_name(driver, vendor_url, vendor_name):
         except:
             pass
 
-def extract_vendors_unified(driver, zap_product_name="Unknown Product"):
+def extract_vendors_unified(driver, zap_product_name="Unknown Product", progress_tracker=None):
     """UNIFIED vendor extraction - identical logic for both modes."""
-    print(f"\n🏪 UNIFIED VENDOR EXTRACTION")
-    print(f"🤖 Mode: {'HEADLESS' if HEADLESS_MODE else 'VISIBLE'}")
+    if not progress_tracker:
+        print(f"\n🏪 UNIFIED VENDOR EXTRACTION")
+        print(f"🤖 Mode: {'HEADLESS' if HEADLESS_MODE else 'VISIBLE'}")
     
     vendors = []
     
@@ -425,11 +430,17 @@ def extract_vendors_unified(driver, zap_product_name="Unknown Product"):
         if "models.aspx" in current_url:
             # On listings page - use ModelRow selectors (same as product detection)
             vendor_rows = driver.find_elements(By.CSS_SELECTOR, ".noModelRow.ModelRow")
-            print(f"✅ Found {len(vendor_rows)} vendor listings on models.aspx page")
+            if progress_tracker:
+                progress_tracker.start_vendor_extraction(len(vendor_rows))
+            else:
+                print(f"✅ Found {len(vendor_rows)} vendor listings on models.aspx page")
         else:
             # On comparison page - use original selectors
             vendor_rows = driver.find_elements(By.CSS_SELECTOR, ".compare-item-row.product-item")
-            print(f"✅ Found {len(vendor_rows)} vendor rows using comparison page selectors")
+            if progress_tracker:
+                progress_tracker.start_vendor_extraction(len(vendor_rows))
+            else:
+                print(f"✅ Found {len(vendor_rows)} vendor rows using comparison page selectors")
         
         if len(vendor_rows) == 0:
             # Enhanced fallback for both page types
@@ -447,7 +458,8 @@ def extract_vendors_unified(driver, zap_product_name="Unknown Product"):
         
         for i, row in enumerate(vendor_rows, 1):
             try:
-                print(f"\n🔍 Processing vendor {i}:")
+                if not progress_tracker:
+                    print(f"\n🔍 Processing vendor {i}:")
                 
                 # ENHANCED: Extract vendor name based on page type
                 vendor_name = f"Vendor {i}"
@@ -606,29 +618,41 @@ def extract_vendors_unified(driver, zap_product_name="Unknown Product"):
                     'vendor_product_name': individual_vendor_product_name
                 })
                 
-                print(f"  {i}. {vendor_name} - ₪{vendor_price}")
+                # Update progress tracker or print
+                if progress_tracker:
+                    progress_tracker.update_vendor_progress(i, vendor_name, vendor_price)
+                else:
+                    print(f"  {i}. {vendor_name} - ₪{vendor_price}")
                 
             except Exception as e:
                 print(f"  Error extracting vendor {i}: {e}")
                 continue
         
+        # Complete vendor extraction progress
+        if progress_tracker:
+            progress_tracker.complete_vendor_extraction(len(vendors))
+        
         return vendors
         
     except Exception as e:
-        print(f"❌ Unified vendor extraction failed: {e}")
+        if progress_tracker:
+            progress_tracker.show_error(f"Unified vendor extraction failed: {e}")
+        else:
+            print(f"❌ Unified vendor extraction failed: {e}")
         return []
 
-def process_single_product(product_name, original_price, line_number):
+def process_single_product(product_name, original_price, line_number, progress_tracker=None):
     """Process a single product with unified approach."""
     driver = create_driver()
     start_time = time.time()
     
     try:
-        print(f"\n{'='*70}")
-        print(f"🚀 PROCESSING LINE {line_number}")
-        print(f"📋 Product: {product_name}")
-        print(f"💰 Original Price: ₪{original_price}")
-        print(f"🤖 Mode: {'HEADLESS' if HEADLESS_MODE else 'VISIBLE'}")
+        if not progress_tracker:
+            print(f"\n{'='*70}")
+            print(f"🚀 PROCESSING LINE {line_number}")
+            print(f"📋 Product: {product_name}")
+            print(f"💰 Original Price: ₪{original_price}")
+            print(f"🤖 Mode: {'HEADLESS' if HEADLESS_MODE else 'VISIBLE'}")
         print(f"{'='*70}")
         
         # Step 1: Search and navigate to product page
@@ -650,7 +674,7 @@ def process_single_product(product_name, original_price, line_number):
         zap_product_name = extract_zap_product_name(driver)
         
         # Step 3: Extract vendors using unified logic
-        vendors = extract_vendors_unified(driver, zap_product_name)
+        vendors = extract_vendors_unified(driver, zap_product_name, progress_tracker)
         
         processing_time = time.time() - start_time
         
@@ -943,35 +967,56 @@ def create_excel_file(results, filename=None):
 
 def main():
     """Main function with unified processing."""
-    global HEADLESS_MODE
+    global HEADLESS_MODE, USE_PROGRESS_TRACKER
     
     parser = argparse.ArgumentParser(description='Production Universal Product Scraper - UNIFIED VERSION')
     parser.add_argument('--headless', action='store_true', help='Run in headless mode')
+    parser.add_argument('--no-progress', action='store_true', help='Disable progress tracking')
     parser.add_argument('lines', nargs='+', type=int, help='Line numbers to process')
     
     args = parser.parse_args()
     
     HEADLESS_MODE = args.headless
+    USE_PROGRESS_TRACKER = not args.no_progress
     target_lines = args.lines
     
-    print("🚀 UNIFIED PRODUCTION SCRAPER")
-    print("="*70)
-    print(f"📋 Processing Lines: {target_lines}")
-    print(f"🤖 Mode: {'HEADLESS' if HEADLESS_MODE else 'VISIBLE'}")
-    print("="*70)
+    # Initialize progress tracker if enabled
+    progress_tracker = None
+    if USE_PROGRESS_TRACKER:
+        try:
+            progress_tracker = ScrapingProgressTracker(
+                total_products=len(target_lines),
+                mode='HEADLESS' if HEADLESS_MODE else 'VISIBLE'
+            )
+            progress_tracker.start()
+        except Exception as e:
+            print(f"⚠️ Could not initialize progress tracker: {e}")
+            progress_tracker = None
+            USE_PROGRESS_TRACKER = False
+    
+    if not USE_PROGRESS_TRACKER:
+        print("🚀 UNIFIED PRODUCTION SCRAPER")
+        print("="*70)
+        print(f"📋 Processing Lines: {target_lines}")
+        print(f"🤖 Mode: {'HEADLESS' if HEADLESS_MODE else 'VISIBLE'}")
+        print("="*70)
     
     # Read source data
     try:
         reader = SourceExcelReader(start_row=2)
         products = reader.read_products('data/SOURCE.xlsx')
-        print(f"✅ Loaded {len(products)} products from source")
+        if not USE_PROGRESS_TRACKER:
+            print(f"✅ Loaded {len(products)} products from source")
     except Exception as e:
-        print(f"❌ Failed to read source data: {e}")
+        if progress_tracker:
+            progress_tracker.show_error(f"Failed to read source data: {e}")
+        else:
+            print(f"❌ Failed to read source data: {e}")
         return
     
     # Process specified lines - NOW USING EXCEL ROW NUMBERS DIRECTLY
     results = []
-    for line_num in target_lines:
+    for idx, line_num in enumerate(target_lines, 1):
         # Find product with matching Excel row number
         product_found = None
         for product in products:
@@ -980,14 +1025,31 @@ def main():
                 break
         
         if product_found:
+            # Update progress tracker if enabled
+            if progress_tracker:
+                progress_tracker.start_product(idx, product_found.name, product_found.original_price)
+            
+            # Process the product
+            product_start_time = time.time()
             result = process_single_product(
                 product_found.name, 
                 product_found.original_price, 
-                line_num
+                line_num,
+                progress_tracker
             )
+            
+            # Update progress after completion
+            if progress_tracker and result:
+                processing_time = time.time() - product_start_time
+                vendors_count = len(result.get('vendors', []))
+                progress_tracker.complete_product(idx, processing_time, vendors_count)
+            
             results.append(result)
         else:
-            print(f"❌ Excel row {line_num} not found in source data (might be empty or header row)")
+            if progress_tracker:
+                progress_tracker.show_error(f"Excel row {line_num} not found in source data")
+            else:
+                print(f"❌ Excel row {line_num} not found in source data (might be empty or header row)")
     
     # Create Excel output using proper TargetExcelWriter
     if results:
@@ -1047,19 +1109,27 @@ def main():
             print("❌ Failed to write Excel file")
             excel_file = None
         
-        print(f"\n🎯 FINAL SUMMARY:")
-        print(f"   Lines processed: {len(results)}")
-        print(f"   Mode: {'HEADLESS' if HEADLESS_MODE else 'VISIBLE'}")
-        print(f"   Excel file: {excel_file}")
-        
-        # Show key statistics
-        total_vendors = sum(len(r['vendors']) for r in results)
-        avg_processing_time = sum(r['processing_time'] for r in results) / len(results)
-        
-        print(f"   Total vendors: {total_vendors}")
-        print(f"   Avg processing time: {avg_processing_time:.1f}s")
+        # Complete progress tracker if enabled
+        if progress_tracker:
+            progress_tracker.complete()
+        else:
+            print(f"\n🎯 FINAL SUMMARY:")
+            print(f"   Lines processed: {len(results)}")
+            print(f"   Mode: {'HEADLESS' if HEADLESS_MODE else 'VISIBLE'}")
+            print(f"   Excel file: {excel_file}")
+            
+            # Show key statistics
+            total_vendors = sum(len(r['vendors']) for r in results)
+            avg_processing_time = sum(r['processing_time'] for r in results) / len(results)
+            
+            print(f"   Total vendors: {total_vendors}")
+            print(f"   Avg processing time: {avg_processing_time:.1f}s")
         
         return excel_file
+    
+    # Complete progress tracker if it exists but no results
+    if progress_tracker:
+        progress_tracker.complete()
     
     return None
 
