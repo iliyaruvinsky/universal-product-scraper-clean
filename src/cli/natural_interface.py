@@ -883,11 +883,7 @@ class NaturalLanguageCLI:
                 "python", "production_scraper.py"
             ]
             
-            # Add headless flag if needed
-            if mode == "headless":
-                cmd_parts.append("--headless")
-            
-            # Add line numbers based on selection type
+            # Add line numbers based on selection type FIRST
             if row_selection['type'] == 'first_n':
                 # Add first N line numbers starting from row 2
                 for i in range(2, 2 + row_selection['count']):
@@ -906,6 +902,10 @@ class NaturalLanguageCLI:
                 # Fallback - just process row 2
                 cmd_parts.append("2")
             
+            # Add headless flag AFTER line numbers if needed
+            if mode == "headless":
+                cmd_parts.append("--headless")
+            
             cmd_str = " ".join(cmd_parts)
             print(f"📋 Executing: {cmd_str}")
             
@@ -917,14 +917,36 @@ class NaturalLanguageCLI:
                     print(f"\n✅ Scraping completed successfully!")
                     
                     # Find the most recent Excel file in output directory
+                    import time
+                    import glob
+                    start_time = time.time() - 300  # Look for files created in last 5 minutes
+                    
                     output_dir = Path("output")
                     if output_dir.exists():
-                        excel_files = sorted(output_dir.glob("*.xlsx"), key=lambda x: x.stat().st_mtime, reverse=True)
-                        if excel_files:
-                            latest_file = str(excel_files[0])
+                        # Look for Excel files, excluding temporary files
+                        pattern = str(output_dir / "Lines_*.xlsx")
+                        excel_files = glob.glob(pattern)
+                        
+                        # Filter out temporary files (start with ~$)
+                        excel_files = [f for f in excel_files if not os.path.basename(f).startswith('~$')]
+                        
+                        # Get files created recently
+                        recent_files = []
+                        for f in excel_files:
+                            if os.path.getctime(f) > start_time:
+                                recent_files.append(f)
+                        
+                        # If we have recent files, use the newest one
+                        if recent_files:
+                            latest_file = max(recent_files, key=os.path.getctime)
                             print(f"📁 Results saved to: {latest_file}")
                             
                             # Generate and display post-processing summary
+                            self._display_post_processing_summary(latest_file, row_selection)
+                        elif excel_files:
+                            # Fallback: use newest file overall
+                            latest_file = max(excel_files, key=os.path.getctime)
+                            print(f"📁 Results saved to: {latest_file}")
                             self._display_post_processing_summary(latest_file, row_selection)
                         else:
                             print("⚠️  No Excel output file found")
@@ -1180,7 +1202,9 @@ class NaturalLanguageCLI:
         
         # Let user choose which product
         print(f"\n🎯 Which product to validate?")
-        print(f"📊 Source file has products in rows 4-{total_products + 3}")
+        first_row = products_info['first_row']
+        last_row = products_info['last_row']
+        print(f"📊 Source file has products in rows {first_row}-{last_row}")
         print(f"A. 🧪 Use optimal test product (if available)")
         print(f"B. 📍 Choose specific row number")
         print(f"C. 🔀 Use first product")
@@ -1201,9 +1225,10 @@ class NaturalLanguageCLI:
         elif choice == 'B':
             while True:
                 try:
-                    row_num = int(input(f"👉 Enter row number (4-{total_products + 3}): "))
-                    if 4 <= row_num <= total_products + 3:
-                        product_index = row_num - 4  # Convert to 0-based index
+                    first_row = products_info['first_row']
+                    last_row = products_info['last_row']
+                    row_num = int(input(f"👉 Enter row number ({first_row}-{last_row}): "))
+                    if first_row <= row_num <= last_row:
                         row_selection = {
                             'type': 'custom_range',
                             'start_row': row_num,
@@ -1213,7 +1238,7 @@ class NaturalLanguageCLI:
                         }
                         break
                     else:
-                        print(f"❌ Please enter a row number between 4 and {total_products + 3}")
+                        print(f"❌ Please enter a row number between {first_row} and {last_row}")
                 except ValueError:
                     print("❌ Please enter a valid row number")
         elif choice == 'C':

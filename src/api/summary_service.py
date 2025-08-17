@@ -32,6 +32,10 @@ class SummaryService:
             Dictionary with summary data for display
         """
         try:
+            # Skip temporary Excel files (start with ~$)
+            if os.path.basename(excel_file_path).startswith('~$'):
+                return {"error": "Skipping temporary Excel file"}
+            
             if not os.path.exists(excel_file_path):
                 return {"error": f"Excel file not found: {excel_file_path}"}
             
